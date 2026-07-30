@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Room database is backed up automatically via allowBackup.
+         Add explicit rules for SharedPreferences if desired. -->
+    <include domain="sharedpref" path="deskpet_prefs.xml" />
+</full-backup-content>

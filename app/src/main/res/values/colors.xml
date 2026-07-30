@@ -1,0 +1,13 @@
+<resources>
+    <color name="primary">#FF8FAB</color>
+    <color name="primary_dark">#E87090</color>
+    <color name="secondary">#C8B6FF</color>
+    <color name="accent">#B8F2D8</color>
+    <color name="bg">#FFF5F7</color>
+    <color name="ink">#4A3F42</color>
+    <color name="muted">#9B8D92</color>
+    <color name="border">#F0E0E5</color>
+    <color name="danger">#FF6B6B</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="launcher_bg">#FFF5F7</color>
+</resources>
