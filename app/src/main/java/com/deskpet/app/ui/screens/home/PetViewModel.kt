@@ -7,7 +7,9 @@ import com.deskpet.app.DeskPetApplication
 import com.deskpet.app.data.model.MoodLevel
 import com.deskpet.app.data.model.Pet
 import com.deskpet.app.data.model.PetState
+import com.deskpet.app.data.model.equippedOutfitIds
 import com.deskpet.app.data.repository.PetRepository
+import com.deskpet.app.util.PhotoHelper
 import com.deskpet.app.util.SoundHelper
 import com.deskpet.app.util.SoundType
 import kotlinx.coroutines.delay
@@ -144,16 +146,34 @@ class PetViewModel(
         }
     }
 
-    /** 拍照: flash animation + toast. */
+    /** 拍照: render pet to a Bitmap, save via FileProvider and offer share. */
     fun onPhoto() {
-        _flash.value = true
-        _toast.value = "合影已保存"
-        SoundHelper.play(SoundType.TAP_LIGHT)
+        val pet = repository.getPet()
+        val outfits = pet.equippedOutfitIds(
+            getApplication<DeskPetApplication>().repository.getOutfitItems()
+        )
+        val context = getApplication<Application>()
+
         viewModelScope.launch {
+            val uri = PhotoHelper.captureAndSave(
+                context = context,
+                petColor = pet.color,
+                species = pet.species,
+                petState = _petState.value,
+                outfits = outfits,
+                petName = pet.name
+            )
+
+            _flash.value = true
             delay(400)
             _flash.value = false
-        }
-        viewModelScope.launch {
+
+            if (uri != null) {
+                _toast.value = "合影已保存"
+                PhotoHelper.launchShare(context, uri)
+            } else {
+                _toast.value = "保存失败，请重试"
+            }
             delay(2000)
             _toast.value = null
         }
