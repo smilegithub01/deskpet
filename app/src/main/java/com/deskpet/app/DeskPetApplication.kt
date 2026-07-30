@@ -3,8 +3,15 @@ package com.deskpet.app
 import android.app.Application
 import com.deskpet.app.data.db.AppDatabase
 import com.deskpet.app.data.repository.PetRepository
+import com.deskpet.app.data.model.InteractionLog
+import com.deskpet.app.data.model.InteractionType
+import com.deskpet.app.service.PetMemoryEngine
 import com.deskpet.app.util.SoundHelper
 import com.deskpet.app.util.SoundType
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 /**
  * Application entry point. Provides singletons for the Room database and
@@ -15,6 +22,8 @@ class DeskPetApplication : Application() {
 
     val repository: PetRepository by lazy { PetRepository.getInstance(this) }
 
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     override fun onCreate() {
         super.onCreate()
         instance = this
@@ -23,6 +32,24 @@ class DeskPetApplication : Application() {
         SoundHelper.init()
         SoundHelper.setEnabled(soundEnabled)
         SoundHelper.play(SoundType.GREETING)
+
+        // Log app open and generate diary if needed
+        appScope.launch {
+            database.interactionLogDao().insert(InteractionLog(
+                type = InteractionType.OPEN_APP.name,
+                timestamp = System.currentTimeMillis()
+            ))
+            PetMemoryEngine(database, repository).generateIfNeeded()
+        }
+    }
+
+    fun logAppClose() {
+        appScope.launch {
+            database.interactionLogDao().insert(InteractionLog(
+                type = InteractionType.CLOSE_APP.name,
+                timestamp = System.currentTimeMillis()
+            ))
+        }
     }
 
     companion object {

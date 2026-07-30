@@ -50,13 +50,19 @@ object NotificationHelper {
         notify(context, NOTIF_WATER, "该喝水啦~", "小团子提醒你补充水分，它也想喝一口呢～")
     }
 
-    fun showPeriodReminder(context: Context, daysUntil: Int) {
+    fun showPeriodReminder(context: Context, petName: String = "小团子", daysUntil: Int) {
         val text = if (daysUntil <= 0) {
-            "小团子会特别温柔哦，记得照顾好自己～"
+            "$petName 感觉主人可能快要不方便了，记得准备好需要的物品哦~"
+        } else if (daysUntil <= 3) {
+            "$petName 感觉快要到了，记得准备哦~"
         } else {
-            "预计还有 $daysUntil 天，小团子已经准备好更粘你了～"
+            "预计还有 $daysUntil 天，$petName 已经准备好更粘你了~"
         }
         notify(context, NOTIF_PERIOD, "经期提醒", text)
+    }
+
+    fun showPeriodEndedMessage(context: Context, petName: String = "小团子") {
+        notify(context, NOTIF_PERIOD, "经期结束", "$petName 松了一口气，主人辛苦啦~")
     }
 
     fun showMoodReminder(context: Context) {

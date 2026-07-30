@@ -75,6 +75,7 @@ import com.deskpet.app.DeskPetApplication
 @Composable
 fun PetHomeScreen(
     onNavigateToDressUp: () -> Unit,
+    onNavigateToDiary: () -> Unit,
     viewModel: PetViewModel = viewModel()
 ) {
     val pet by viewModel.pet.collectAsStateWithLifecycle()
@@ -109,7 +110,8 @@ fun PetHomeScreen(
                 name = pet.name,
                 level = pet.level,
                 moodText = moodDescription(petState),
-                diamonds = pet.diamonds
+                diamonds = pet.diamonds,
+                onNavigateToDiary = onNavigateToDiary
             )
 
             Spacer(Modifier.height(12.dp))
@@ -205,7 +207,8 @@ private fun HomeTopBar(
     name: String,
     level: Int,
     moodText: String,
-    diamonds: Int
+    diamonds: Int,
+    onNavigateToDiary: () -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -229,7 +232,22 @@ private fun HomeTopBar(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        DiamondsChip(diamonds = diamonds)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // Diary entry button
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
+                    .clickable { onNavigateToDiary() },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = "💌", fontSize = 16.sp)
+            }
+            Spacer(Modifier.width(8.dp))
+            DiamondsChip(diamonds = diamonds)
+        }
     }
 }
 

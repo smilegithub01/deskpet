@@ -243,6 +243,14 @@ fun SettingsScreen() {
                         repository.updateSettings { it.copy(quietHoursEnabled = v) }
                     }
                 )
+                ToggleRow(
+                    icon = "🌤️",
+                    label = "环境感知",
+                    checked = settings.envAwarenessEnabled,
+                    onCheckedChange = { v ->
+                        repository.updateSettings { it.copy(envAwarenessEnabled = v) }
+                    }
+                )
             }
         }
 
@@ -257,8 +265,37 @@ fun SettingsScreen() {
                         repository.updateSettings { it.copy(periodTrackingEnabled = v) }
                     }
                 )
+                if (settings.periodTrackingEnabled) {
+                    ToggleRow(
+                        icon = "🐾",
+                        label = "经期行为联动",
+                        checked = settings.periodBehaviorLink,
+                        onCheckedChange = { v ->
+                            repository.updateSettings { it.copy(periodBehaviorLink = v) }
+                        }
+                    )
+                }
+                // Privacy notice
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "🔒",
+                        fontSize = 20.sp
+                    )
+                    Spacer(Modifier.size(12.dp))
+                    Text(
+                        text = "你的经期数据仅保存在本机，不会上传任何服务器",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
                 ToggleRow(
-                    icon = "🔒",
+                    icon = "🔐",
                     label = "数据加密",
                     checked = settings.dataEncrypted,
                     onCheckedChange = { v ->

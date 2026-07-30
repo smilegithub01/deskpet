@@ -3,6 +3,10 @@ package com.deskpet.app.data.repository
 import android.content.Context
 import android.content.SharedPreferences
 import com.deskpet.app.data.db.AppDatabase
+import com.deskpet.app.data.model.HabitStreak
+import com.deskpet.app.data.model.HabitType
+import com.deskpet.app.data.model.InteractionLog
+import com.deskpet.app.data.model.InteractionType
 import com.deskpet.app.data.model.OutfitCategory
 import com.deskpet.app.data.model.OutfitItem
 import com.deskpet.app.data.model.Pet
@@ -16,6 +20,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.runBlocking
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * Single source of truth for the live [Pet] state and persisted [PetSettings].
@@ -30,6 +37,8 @@ class PetRepository private constructor(
 ) {
 
     private val petDao = database.petDao()
+    private val habitStreakDao = database.habitStreakDao()
+    private val interactionLogDao = database.interactionLogDao()
 
     private val prefs: SharedPreferences =
         context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -169,6 +178,108 @@ class PetRepository private constructor(
         saveSettings(updated)
     }
 
+    // ----------------------------------------------------- Habit Check-in
+
+    suspend fun checkinHabit(habitType: HabitType): HabitCheckinResult {
+        val now = System.currentTimeMillis()
+        val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(now))
+
+        val lastCheckTime = when (habitType) {
+            HabitType.DRINK -> _settings.value.lastDrinkCheckTime
+            HabitType.SIT -> _settings.value.lastSitCheckTime
+            HabitType.EYE -> _settings.value.lastEyeCheckTime
+        }
+        val intervalMs = when (habitType) {
+            HabitType.DRINK -> _settings.value.waterReminderInterval * 60_000L
+            HabitType.SIT -> _settings.value.sitReminderInterval * 60_000L
+            HabitType.EYE -> _settings.value.eyeReminderInterval * 60_000L
+        }
+        if (now - lastCheckTime < intervalMs && lastCheckTime > 0) {
+            return HabitCheckinResult(success = false, message = "还没到时间哦，稍后再来~")
+        }
+
+        updateSettings { settings ->
+            when (habitType) {
+                HabitType.DRINK -> settings.copy(lastDrinkCheckTime = now)
+                HabitType.SIT -> settings.copy(lastSitCheckTime = now)
+                HabitType.EYE -> settings.copy(lastEyeCheckTime = now)
+            }
+        }
+
+        val (hungerDelta, moodDelta, intimacyDelta) = when (habitType) {
+            HabitType.DRINK -> Triple(3, 0, 0)
+            HabitType.SIT -> Triple(0, 5, 0)
+            HabitType.EYE -> Triple(0, 0, 2)
+        }
+        val diamondDelta = 1
+
+        _petState.update { pet ->
+            pet.copy(
+                hunger = (pet.hunger + hungerDelta).coerceIn(0, MAX_STAT),
+                mood = (pet.mood + moodDelta).coerceIn(0, MAX_STAT),
+                intimacy = (pet.intimacy + intimacyDelta).coerceIn(0, MAX_STAT),
+                diamonds = pet.diamonds + diamondDelta
+            )
+        }
+
+        val streak = habitStreakDao.getByType(habitType.name)
+        val yesterdayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            .format(Date(now - 24 * 60 * 60 * 1000))
+
+        val newStreak = if (streak == null) {
+            1
+        } else if (streak.lastCheckDate == todayStr) {
+            streak.currentStreak
+        } else if (streak.lastCheckDate == yesterdayStr) {
+            streak.currentStreak + 1
+        } else {
+            1
+        }
+
+        val bonusDiamonds = when (newStreak) {
+            3 -> 5
+            7 -> 15
+            15 -> 30
+            30 -> 50
+            else -> 0
+        }
+
+        if (bonusDiamonds > 0) {
+            _petState.update { it.copy(diamonds = it.diamonds + bonusDiamonds) }
+        }
+
+        habitStreakDao.upsert(HabitStreak(
+            habitType = habitType.name,
+            currentStreak = newStreak,
+            longestStreak = maxOf(streak?.longestStreak ?: 0, newStreak),
+            lastCheckDate = todayStr
+        ))
+
+        persistPet()
+
+        interactionLogDao.insert(InteractionLog(
+            type = InteractionType.CHECKIN.name,
+            timestamp = now,
+            detail = habitType.name
+        ))
+
+        val msg = if (bonusDiamonds > 0) {
+            "打卡成功！连续${newStreak}天，奖励${bonusDiamonds}钻石~"
+        } else {
+            "打卡成功！连续${newStreak}天~"
+        }
+
+        return HabitCheckinResult(
+            success = true,
+            message = msg,
+            newStreak = newStreak,
+            bonusDiamonds = bonusDiamonds
+        )
+    }
+
+    /** Exposes habit streaks flow for UI. */
+    fun getHabitStreaksFlow() = habitStreakDao.getAll()
+
     // ----------------------------------------------------- Persistence helpers
 
     private fun loadSettings(): PetSettings {
@@ -198,7 +309,12 @@ class PetRepository private constructor(
             quietHoursEnabled = prefs.getBoolean(SettingsKeys.QUIET_HOURS_ENABLED, true),
             quietHoursStart = prefs.getInt(SettingsKeys.QUIET_HOURS_START, 23),
             quietHoursEnd = prefs.getInt(SettingsKeys.QUIET_HOURS_END, 7),
-            dataEncrypted = prefs.getBoolean(SettingsKeys.DATA_ENCRYPTED, true)
+            dataEncrypted = prefs.getBoolean(SettingsKeys.DATA_ENCRYPTED, true),
+            lastDrinkCheckTime = prefs.getLong(SettingsKeys.LAST_DRINK_CHECK, 0L),
+            lastSitCheckTime = prefs.getLong(SettingsKeys.LAST_SIT_CHECK, 0L),
+            lastEyeCheckTime = prefs.getLong(SettingsKeys.LAST_EYE_CHECK, 0L),
+            periodBehaviorLink = prefs.getBoolean(SettingsKeys.PERIOD_BEHAVIOR_LINK, false),
+            envAwarenessEnabled = prefs.getBoolean(SettingsKeys.ENV_AWARENESS_ENABLED, true)
         )
     }
 
@@ -222,6 +338,11 @@ class PetRepository private constructor(
             putInt(SettingsKeys.QUIET_HOURS_START, settings.quietHoursStart)
             putInt(SettingsKeys.QUIET_HOURS_END, settings.quietHoursEnd)
             putBoolean(SettingsKeys.DATA_ENCRYPTED, settings.dataEncrypted)
+            putLong(SettingsKeys.LAST_DRINK_CHECK, settings.lastDrinkCheckTime)
+            putLong(SettingsKeys.LAST_SIT_CHECK, settings.lastSitCheckTime)
+            putLong(SettingsKeys.LAST_EYE_CHECK, settings.lastEyeCheckTime)
+            putBoolean(SettingsKeys.PERIOD_BEHAVIOR_LINK, settings.periodBehaviorLink)
+            putBoolean(SettingsKeys.ENV_AWARENESS_ENABLED, settings.envAwarenessEnabled)
         }.apply()
     }
 
@@ -328,6 +449,11 @@ class PetRepository private constructor(
             const val QUIET_HOURS_START = "quiet_hours_start"
             const val QUIET_HOURS_END = "quiet_hours_end"
             const val DATA_ENCRYPTED = "data_encrypted"
+            const val LAST_DRINK_CHECK = "last_drink_check"
+            const val LAST_SIT_CHECK = "last_sit_check"
+            const val LAST_EYE_CHECK = "last_eye_check"
+            const val PERIOD_BEHAVIOR_LINK = "period_behavior_link"
+            const val ENV_AWARENESS_ENABLED = "env_awareness_enabled"
         }
 
         /**
@@ -405,3 +531,10 @@ class PetRepository private constructor(
             }
     }
 }
+
+data class HabitCheckinResult(
+    val success: Boolean,
+    val message: String,
+    val newStreak: Int = 0,
+    val bonusDiamonds: Int = 0
+)

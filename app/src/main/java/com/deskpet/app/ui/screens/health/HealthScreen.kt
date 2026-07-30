@@ -56,10 +56,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.deskpet.app.DeskPetApplication
+import com.deskpet.app.data.model.HabitStreak
+import com.deskpet.app.data.model.HabitType
 import com.deskpet.app.data.model.MoodLevel
 import com.deskpet.app.data.model.MoodLog
 import com.deskpet.app.data.model.PeriodLog
+import com.deskpet.app.data.repository.HabitCheckinResult
+import com.deskpet.app.util.SoundHelper
+import com.deskpet.app.util.SoundType
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
@@ -73,8 +79,11 @@ fun HealthScreen() {
     val database = remember { app.database }
     val repository = remember { app.repository }
     val scope = rememberCoroutineScope()
+    val healthViewModel: HealthViewModel = viewModel()
 
     val settings by repository.settings.collectAsStateWithLifecycle()
+    val habitStreaks by healthViewModel.habitStreaks.collectAsStateWithLifecycle()
+    val checkinResult by healthViewModel.checkinResult.collectAsStateWithLifecycle()
     val recentMoods by database.moodLogDao().getRecent(7)
         .collectAsStateWithLifecycle(initialValue = emptyList())
     val periodLogs by database.periodLogDao().getAll()
@@ -89,6 +98,18 @@ fun HealthScreen() {
         toastMessage?.let {
             snackbarHostState.showSnackbar(it)
             toastMessage = null
+        }
+    }
+
+    LaunchedEffect(checkinResult) {
+        checkinResult?.let { result ->
+            if (result.success) {
+                SoundHelper.play(SoundType.CHECKIN)
+                toastMessage = result.message
+            } else {
+                toastMessage = result.message
+            }
+            healthViewModel.clearResult()
         }
     }
 
@@ -169,6 +190,7 @@ fun HealthScreen() {
                     waterEnabled = settings.waterReminderEnabled,
                     sitEnabled = settings.sitReminderEnabled,
                     eyeEnabled = settings.eyeReminderEnabled,
+                    habitStreaks = habitStreaks,
                     onWaterChange = { v ->
                         repository.updateSettings { it.copy(waterReminderEnabled = v) }
                     },
@@ -177,6 +199,9 @@ fun HealthScreen() {
                     },
                     onEyeChange = { v ->
                         repository.updateSettings { it.copy(eyeReminderEnabled = v) }
+                    },
+                    onCheckin = { habitType ->
+                        healthViewModel.checkin(habitType)
                     }
                 )
             }
@@ -359,23 +384,48 @@ private fun HealthRemindersCard(
     waterEnabled: Boolean,
     sitEnabled: Boolean,
     eyeEnabled: Boolean,
+    habitStreaks: List<HabitStreak>,
     onWaterChange: (Boolean) -> Unit,
     onSitChange: (Boolean) -> Unit,
-    onEyeChange: (Boolean) -> Unit
+    onEyeChange: (Boolean) -> Unit,
+    onCheckin: (HabitType) -> Unit
 ) {
     CardContainer(title = "健康提醒") {
-        ReminderRow(label = "喝水提醒", icon = "💧", checked = waterEnabled, onCheckedChange = onWaterChange)
-        ReminderRow(label = "久坐提醒", icon = "🪑", checked = sitEnabled, onCheckedChange = onSitChange)
-        ReminderRow(label = "护眼提醒", icon = "👁️", checked = eyeEnabled, onCheckedChange = onEyeChange)
+        HabitReminderRow(
+            label = "喝水提醒",
+            icon = "💧",
+            checked = waterEnabled,
+            streak = habitStreaks.find { it.habitType == HabitType.DRINK.name },
+            onCheckedChange = onWaterChange,
+            onCheckin = { onCheckin(HabitType.DRINK) }
+        )
+        HabitReminderRow(
+            label = "久坐提醒",
+            icon = "🪑",
+            checked = sitEnabled,
+            streak = habitStreaks.find { it.habitType == HabitType.SIT.name },
+            onCheckedChange = onSitChange,
+            onCheckin = { onCheckin(HabitType.SIT) }
+        )
+        HabitReminderRow(
+            label = "护眼提醒",
+            icon = "👁️",
+            checked = eyeEnabled,
+            streak = habitStreaks.find { it.habitType == HabitType.EYE.name },
+            onCheckedChange = onEyeChange,
+            onCheckin = { onCheckin(HabitType.EYE) }
+        )
     }
 }
 
 @Composable
-private fun ReminderRow(
+private fun HabitReminderRow(
     label: String,
     icon: String,
     checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
+    streak: HabitStreak?,
+    onCheckedChange: (Boolean) -> Unit,
+    onCheckin: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -385,12 +435,39 @@ private fun ReminderRow(
     ) {
         Text(text = icon, fontSize = 20.sp)
         Spacer(Modifier.size(12.dp))
-        Text(
-            text = label,
-            fontSize = 15.sp,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f)
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                fontSize = 15.sp,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            if (streak != null && streak.currentStreak > 0) {
+                Text(
+                    text = "连续 ${streak.currentStreak} 天",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+        // Check-in button
+        if (checked) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .clickable(onClick = onCheckin),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Check,
+                    contentDescription = "打卡",
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            Spacer(Modifier.size(8.dp))
+        }
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,

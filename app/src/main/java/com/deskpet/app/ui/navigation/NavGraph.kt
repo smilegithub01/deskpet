@@ -14,6 +14,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.deskpet.app.ui.components.BottomNav
 import com.deskpet.app.ui.components.PetDestinations
+import com.deskpet.app.ui.screens.diary.DiaryScreen
 import com.deskpet.app.ui.screens.dressup.DressUpScreen
 import com.deskpet.app.ui.screens.health.HealthScreen
 import com.deskpet.app.ui.screens.home.PetHomeScreen
@@ -83,8 +84,14 @@ fun NavGraph() {
                         navController.navigate(PetDestinations.DRESSUP) {
                             launchSingleTop = true
                         }
+                    },
+                    onNavigateToDiary = {
+                        navController.navigate(PetDestinations.DIARY)
                     }
                 )
+            }
+            composable(PetDestinations.DIARY) {
+                DiaryScreen(onBack = { navController.popBackStack() })
             }
             composable(PetDestinations.DRESSUP) {
                 DressUpScreen()

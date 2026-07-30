@@ -28,6 +28,7 @@ object PetDestinations {
     const val ONBOARDING = "onboarding"
     const val HOME = "home"
     const val DRESSUP = "dressup"
+    const val DIARY = "diary"
     const val HEALTH = "health"
     const val SETTINGS = "settings"
 }

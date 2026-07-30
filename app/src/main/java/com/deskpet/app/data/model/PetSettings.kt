@@ -21,5 +21,10 @@ data class PetSettings(
     val quietHoursEnabled: Boolean = true,
     val quietHoursStart: Int = 23, // hour
     val quietHoursEnd: Int = 7,
-    val dataEncrypted: Boolean = true
+    val dataEncrypted: Boolean = true,
+    val lastDrinkCheckTime: Long = 0L,
+    val lastSitCheckTime: Long = 0L,
+    val lastEyeCheckTime: Long = 0L,
+    val periodBehaviorLink: Boolean = false,
+    val envAwarenessEnabled: Boolean = true
 )

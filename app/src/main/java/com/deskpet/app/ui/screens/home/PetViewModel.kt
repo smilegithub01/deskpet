@@ -19,6 +19,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.deskpet.app.data.model.InteractionLog
+import com.deskpet.app.data.model.InteractionType
+import com.deskpet.app.service.EnvApiService
+import com.deskpet.app.service.PetMemoryEngine
+import com.deskpet.app.util.LunarCalendarHelper
 
 /**
  * Food options shown in the feed bottom-sheet.
@@ -48,6 +53,47 @@ class PetViewModel(
 
     private val repository: PetRepository =
         getApplication<DeskPetApplication>().repository
+
+    private val interactionLogDao = getApplication<DeskPetApplication>().database.interactionLogDao()
+    private val memoryEngine = PetMemoryEngine(
+        getApplication<DeskPetApplication>().database,
+        repository
+    )
+    private val envApiService = EnvApiService(getApplication<DeskPetApplication>().database)
+
+    private val _dailyQuote = MutableStateFlow<String?>(null)
+    val dailyQuote: StateFlow<String?> = _dailyQuote
+
+    private val _festivalMessage = MutableStateFlow<String?>(null)
+    val festivalMessage: StateFlow<String?> = _festivalMessage
+
+    init {
+        viewModelScope.launch {
+            memoryEngine.generateIfNeeded()
+        }
+        viewModelScope.launch {
+            // Load daily quote
+            val cached = envApiService.getCachedQuote()
+            if (cached != null) {
+                _dailyQuote.value = cached.content
+            } else {
+                val fetched = envApiService.fetchDailyQuote()
+                _dailyQuote.value = fetched?.content
+            }
+
+            // Check festival
+            val festival = LunarCalendarHelper.getTodayFestival()
+            _festivalMessage.value = festival?.petMessage
+
+            // Show quote or festival message as speech bubble (only if no other bubble is showing)
+            val envMessage = _festivalMessage.value ?: _dailyQuote.value
+            if (envMessage != null) {
+                _speechBubble.value = envMessage
+                delay(4000)
+                _speechBubble.value = null
+            }
+        }
+    }
 
     /** Live pet state sourced from the repository. */
     val pet: StateFlow<Pet> = repository.petState.stateIn(
@@ -86,6 +132,12 @@ class PetViewModel(
     fun onPet() {
         repository.petPet()
         SoundHelper.play(SoundType.PET)
+        viewModelScope.launch {
+            interactionLogDao.insert(InteractionLog(
+                type = InteractionType.PET.name,
+                timestamp = System.currentTimeMillis()
+            ))
+        }
         _petState.value = PetState.HAPPY
         _showHearts.value = true
         _speechBubble.value = "好舒服呀～"
@@ -119,6 +171,13 @@ class PetViewModel(
         _petState.value = PetState.EATING
         repository.feedPet(food.name)
         SoundHelper.play(SoundType.FEED)
+        viewModelScope.launch {
+            interactionLogDao.insert(InteractionLog(
+                type = InteractionType.FEED.name,
+                timestamp = System.currentTimeMillis(),
+                detail = food.name
+            ))
+        }
         _speechBubble.value = "真好吃～"
         viewModelScope.launch {
             delay(2000)
@@ -139,6 +198,13 @@ class PetViewModel(
             MoodLevel.SAD -> -5
         }
         repository.updateMood(delta)
+        viewModelScope.launch {
+            interactionLogDao.insert(InteractionLog(
+                type = InteractionType.MOOD_SELECTED.name,
+                timestamp = System.currentTimeMillis(),
+                detail = mood.name
+            ))
+        }
         _petState.value = if (delta > 0) PetState.HAPPY else PetState.SLEEPY
         viewModelScope.launch {
             delay(2000)
@@ -155,6 +221,10 @@ class PetViewModel(
         val context = getApplication<Application>()
 
         viewModelScope.launch {
+            interactionLogDao.insert(InteractionLog(
+                type = InteractionType.PHOTO.name,
+                timestamp = System.currentTimeMillis()
+            ))
             val uri = PhotoHelper.captureAndSave(
                 context = context,
                 petColor = pet.color,
