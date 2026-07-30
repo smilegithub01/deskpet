@@ -46,6 +46,15 @@ jobs:
       - name: Remove local.properties
         run: rm -f local.properties
 
+      # ---------- 切换 Gradle 分发源为官方地址 ----------
+      # 项目默认使用腾讯云镜像（国内加速），CI 环境无法访问，需切换官方源
+      - name: Use official Gradle distribution
+        run: |
+          sed -i 's|https\\://mirrors.cloud.tencent.com/gradle/|https\\://services.gradle.org/distributions/|' \
+            gradle/wrapper/gradle-wrapper.properties
+          echo "::notice::Gradle 分发源已切换为官方地址"
+          cat gradle/wrapper/gradle-wrapper.properties
+
       # ---------- Gradle 缓存（加速重复构建） ----------
       - name: Cache Gradle
         uses: actions/cache@v4
