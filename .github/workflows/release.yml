@@ -11,6 +11,9 @@ on:
         description: '版本标签 (如 v1.0.0)'
         required: true
 
+env:
+  GRADLE_VERSION: '8.5'
+
 jobs:
   release:
     name: Build & Release APK
@@ -34,18 +37,20 @@ jobs:
       - name: Remove local.properties
         run: rm -f local.properties
 
-      # 切换 Gradle 分发源为官方地址（CI 无法访问国内镜像）
-      - name: Use official Gradle distribution
+      # 手动安装 Gradle（绕过 wrapper 的 Java HTTP 下载）
+      - name: Install Gradle
         run: |
-          sed -i 's|https\\://mirrors.cloud.tencent.com/gradle/|https\\://services.gradle.org/distributions/|' \
-            gradle/wrapper/gradle-wrapper.properties
+          GRADLE_URL="https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
+          curl -fsSL "$GRADLE_URL" -o /tmp/gradle.zip
+          unzip -q /tmp/gradle.zip -d /opt/
+          echo "/opt/gradle-${GRADLE_VERSION}/bin" >> $GITHUB_PATH
+          rm /tmp/gradle.zip
 
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
-            ~/.gradle/wrapper
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', 'gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: |
             gradle-${{ runner.os }}-
@@ -67,7 +72,7 @@ jobs:
 
       # ---------- 构建 Debug + Release APK ----------
       - name: Build APKs
-        run: ./gradlew assembleDebug assembleRelease --no-daemon --stacktrace
+        run: gradle assembleDebug assembleRelease --no-daemon --stacktrace
 
       # ---------- 重命名 APK (带版本号) ----------
       - name: Rename APKs

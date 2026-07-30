@@ -19,6 +19,9 @@ on:
           - release
           - both
 
+env:
+  GRADLE_VERSION: '8.5'
+
 jobs:
   build:
     name: Build & Test
@@ -38,7 +41,6 @@ jobs:
 
       # ---------- 配置 Android SDK ----------
       # ubuntu-latest 已预装 Android SDK，此处仅接受 license
-      # 缺失的 SDK 组件由 AGP 自动下载
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
@@ -46,14 +48,19 @@ jobs:
       - name: Remove local.properties
         run: rm -f local.properties
 
-      # ---------- 切换 Gradle 分发源为官方地址 ----------
-      # 项目默认使用腾讯云镜像（国内加速），CI 环境无法访问，需切换官方源
-      - name: Use official Gradle distribution
+      # ---------- 手动安装 Gradle ----------
+      # 绕过 gradle wrapper 的 Java HTTP 下载（运行器网络栈可能拒绝连接）
+      # 使用 curl 下载 + 手动安装，更可靠
+      - name: Install Gradle
         run: |
-          sed -i 's|https\\://mirrors.cloud.tencent.com/gradle/|https\\://services.gradle.org/distributions/|' \
-            gradle/wrapper/gradle-wrapper.properties
-          echo "::notice::Gradle 分发源已切换为官方地址"
-          cat gradle/wrapper/gradle-wrapper.properties
+          GRADLE_URL="https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
+          echo "下载 Gradle: $GRADLE_URL"
+          curl -fsSL "$GRADLE_URL" -o /tmp/gradle.zip
+          echo "下载完成，解压中..."
+          unzip -q /tmp/gradle.zip -d /opt/
+          echo "/opt/gradle-${GRADLE_VERSION}/bin" >> $GITHUB_PATH
+          rm /tmp/gradle.zip
+          echo "::notice::Gradle ${GRADLE_VERSION} 安装完成"
 
       # ---------- Gradle 缓存（加速重复构建） ----------
       - name: Cache Gradle
@@ -61,7 +68,6 @@ jobs:
         with:
           path: |
             ~/.gradle/caches
-            ~/.gradle/wrapper
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', 'gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: |
             gradle-${{ runner.os }}-
@@ -69,6 +75,10 @@ jobs:
       # ---------- 授予 gradlew 执行权限 ----------
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
+
+      # ---------- 验证 Gradle 安装 ----------
+      - name: Verify Gradle
+        run: gradle --version
 
       # ---------- 解析构建类型输入 ----------
       - name: Determine build types
@@ -82,21 +92,21 @@ jobs:
       # ---------- 编译 Debug APK ----------
       - name: Build Debug APK
         if: steps.bt.outputs.type == 'debug' || steps.bt.outputs.type == 'both'
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        run: gradle assembleDebug --no-daemon --stacktrace
 
       # ---------- 编译 Release APK (未签名) ----------
       - name: Build Release APK (unsigned)
         if: steps.bt.outputs.type == 'release' || steps.bt.outputs.type == 'both'
-        run: ./gradlew assembleRelease --no-daemon --stacktrace
+        run: gradle assembleRelease --no-daemon --stacktrace
 
       # ---------- 运行单元测试 ----------
       - name: Run unit tests
-        run: ./gradlew testDebugUnitTest --no-daemon
+        run: gradle testDebugUnitTest --no-daemon
         continue-on-error: true
 
       # ---------- Lint 静态检查 ----------
       - name: Run Lint
-        run: ./gradlew lintDebug --no-daemon
+        run: gradle lintDebug --no-daemon
         continue-on-error: true
 
       # ---------- 上传构建产物 ----------
