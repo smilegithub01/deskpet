@@ -8,6 +8,7 @@ import com.deskpet.app.data.model.InteractionType
 import com.deskpet.app.service.PetMemoryEngine
 import com.deskpet.app.util.SoundHelper
 import com.deskpet.app.util.SoundType
+import com.deskpet.app.util.SpeechHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -32,6 +33,11 @@ class DeskPetApplication : Application() {
         SoundHelper.init()
         SoundHelper.setEnabled(soundEnabled)
         SoundHelper.play(SoundType.GREETING)
+
+        // Initialize TTS and set enabled state from settings
+        SpeechHelper.init(this)
+        val ttsEnabled = prefs.getBoolean("tts_enabled", false)
+        SpeechHelper.setEnabled(ttsEnabled)
 
         // Log app open and generate diary if needed
         appScope.launch {

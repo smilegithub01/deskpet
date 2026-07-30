@@ -31,6 +31,9 @@ object PetDestinations {
     const val DIARY = "diary"
     const val HEALTH = "health"
     const val SETTINGS = "settings"
+    const val DECOR = "decor"
+    const val TRAVEL = "travel"
+    const val CODEX = "codex"
 }
 
 /**

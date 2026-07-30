@@ -205,6 +205,15 @@ fun SettingsScreen() {
                         repository.updateSettings { it.copy(soundEnabled = v) }
                     }
                 )
+                ToggleRow(
+                    icon = "🗣️",
+                    label = "宠物语音",
+                    checked = settings.ttsEnabled,
+                    onCheckedChange = { v ->
+                        com.deskpet.app.util.SpeechHelper.setEnabled(v)
+                        repository.updateSettings { it.copy(ttsEnabled = v) }
+                    }
+                )
             }
         }
 

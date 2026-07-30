@@ -12,6 +12,8 @@ import com.deskpet.app.data.repository.PetRepository
 import com.deskpet.app.util.PhotoHelper
 import com.deskpet.app.util.SoundHelper
 import com.deskpet.app.util.SoundType
+import com.deskpet.app.util.SpeechHelper
+import com.deskpet.app.util.DialogueBank
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -88,7 +90,7 @@ class PetViewModel(
             // Show quote or festival message as speech bubble (only if no other bubble is showing)
             val envMessage = _festivalMessage.value ?: _dailyQuote.value
             if (envMessage != null) {
-                _speechBubble.value = envMessage
+                speak(envMessage)
                 delay(4000)
                 _speechBubble.value = null
             }
@@ -122,6 +124,14 @@ class PetViewModel(
     private val _speechBubble = MutableStateFlow<String?>(null)
     val speechBubble: StateFlow<String?> = _speechBubble.asStateFlow()
 
+    /** Shows a speech bubble and speaks it via TTS if enabled. */
+    private fun speak(text: String) {
+        _speechBubble.value = text
+        if (repository.getSettings().ttsEnabled) {
+            SpeechHelper.speak(text)
+        }
+    }
+
     /** White flash overlay used by the photo action. */
     private val _flash = MutableStateFlow(false)
     val flash: StateFlow<Boolean> = _flash.asStateFlow()
@@ -140,7 +150,7 @@ class PetViewModel(
         }
         _petState.value = PetState.HAPPY
         _showHearts.value = true
-        _speechBubble.value = "好舒服呀～"
+        speak("好舒服呀～")
         viewModelScope.launch {
             delay(2500)
             _petState.value = PetState.IDLE
@@ -178,7 +188,7 @@ class PetViewModel(
                 detail = food.name
             ))
         }
-        _speechBubble.value = "真好吃～"
+        speak("真好吃～")
         viewModelScope.launch {
             delay(2000)
             _petState.value = PetState.IDLE

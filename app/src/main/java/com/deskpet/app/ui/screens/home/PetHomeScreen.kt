@@ -76,6 +76,9 @@ import com.deskpet.app.DeskPetApplication
 fun PetHomeScreen(
     onNavigateToDressUp: () -> Unit,
     onNavigateToDiary: () -> Unit,
+    onNavigateToDecor: () -> Unit,
+    onNavigateToTravel: () -> Unit,
+    onNavigateToCodex: () -> Unit,
     viewModel: PetViewModel = viewModel()
 ) {
     val pet by viewModel.pet.collectAsStateWithLifecycle()
@@ -135,7 +138,16 @@ fun PetHomeScreen(
             // ---- Status bars ----
             StatusBars(pet = pet)
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(12.dp))
+
+            // ---- Quick access: 小窝 / 旅行 / 图鉴 ----
+            QuickAccessRow(
+                onDecor = onNavigateToDecor,
+                onTravel = onNavigateToTravel,
+                onCodex = onNavigateToCodex
+            )
+
+            Spacer(Modifier.height(12.dp))
 
             // ---- Mood selector ----
             MoodSelector { viewModel.onMoodSelected(it) }
@@ -524,6 +536,55 @@ private fun FoodCard(food: FoodOption, onClick: () -> Unit) {
 }
 
 // ----------------------------------------------------------- Helpers
+
+@Composable
+private fun QuickAccessRow(
+    onDecor: () -> Unit,
+    onTravel: () -> Unit,
+    onCodex: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        QuickAccessButton(emoji = "🏠", label = "小窝", onClick = onDecor)
+        QuickAccessButton(emoji = "✈️", label = "旅行", onClick = onTravel)
+        QuickAccessButton(emoji = "📖", label = "图鉴", onClick = onCodex)
+    }
+}
+
+@Composable
+private fun QuickAccessButton(
+    emoji: String,
+    label: String,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = null,
+            onClick = onClick
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(text = emoji, fontSize = 22.sp)
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
 
 private fun moodDescription(state: PetState): String = when (state) {
     PetState.HAPPY, PetState.EXCITED -> "心情超好～"

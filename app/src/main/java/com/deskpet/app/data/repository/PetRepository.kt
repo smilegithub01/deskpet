@@ -3,6 +3,8 @@ package com.deskpet.app.data.repository
 import android.content.Context
 import android.content.SharedPreferences
 import com.deskpet.app.data.db.AppDatabase
+import com.deskpet.app.data.model.FurnitureCategory
+import com.deskpet.app.data.model.FurnitureItem
 import com.deskpet.app.data.model.HabitStreak
 import com.deskpet.app.data.model.HabitType
 import com.deskpet.app.data.model.InteractionLog
@@ -13,6 +15,7 @@ import com.deskpet.app.data.model.Pet
 import com.deskpet.app.data.model.PetColor
 import com.deskpet.app.data.model.PetEntity
 import com.deskpet.app.data.model.PetSettings
+import com.deskpet.app.data.model.RoomLayout
 import com.deskpet.app.data.model.toEntity
 import com.deskpet.app.data.model.toPet
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,6 +42,7 @@ class PetRepository private constructor(
     private val petDao = database.petDao()
     private val habitStreakDao = database.habitStreakDao()
     private val interactionLogDao = database.interactionLogDao()
+    private val roomLayoutDao = database.roomLayoutDao()
 
     private val prefs: SharedPreferences =
         context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -46,11 +50,21 @@ class PetRepository private constructor(
     private val _petState = MutableStateFlow(loadPersistedPet())
     val petState: StateFlow<Pet> = _petState.asStateFlow()
 
+    /** Alias for [petState] — used by L2 engines and ViewModels. */
+    val pet: StateFlow<Pet> = petState
+
     private val _settings = MutableStateFlow(loadSettings())
     val settings: StateFlow<PetSettings> = _settings.asStateFlow()
 
     private val _ownedOutfits = MutableStateFlow(loadOwnedOutfits())
     val ownedOutfits: StateFlow<List<String>> = _ownedOutfits.asStateFlow()
+
+    // --- Furniture System ---
+    private val _ownedFurniture = MutableStateFlow(loadOwnedFurniture())
+    val ownedFurniture: StateFlow<List<String>> = _ownedFurniture.asStateFlow()
+
+    private val _roomLayout = MutableStateFlow<List<RoomLayout>>(emptyList())
+    val roomLayout: StateFlow<List<RoomLayout>> = _roomLayout.asStateFlow()
 
     // ------------------------------------------------------------------ Pet
 
@@ -176,6 +190,59 @@ class PetRepository private constructor(
         val updated = transform(_settings.value)
         _settings.value = updated
         saveSettings(updated)
+    }
+
+    // ---------------------------------------------------------- Furniture
+
+    /** Returns the full catalogue of [FurnitureItem]s. */
+    fun getFurnitureItems(): List<FurnitureItem> = FURNITURE_CATALOGUE
+
+    /** Loads room layout from DB into the StateFlow. */
+    suspend fun loadRoomLayout() {
+        _roomLayout.value = roomLayoutDao.getAllOnce()
+    }
+
+    /**
+     * Attempts to purchase a furniture item. Returns `true` on success.
+     */
+    fun purchaseFurniture(item: FurnitureItem): Boolean {
+        val pet = _petState.value
+        if (_ownedFurniture.value.contains(item.id)) return true
+        if (pet.level < item.requiredLevel) return false
+        if (pet.diamonds < item.price) return false
+
+        _petState.update { it.copy(diamonds = it.diamonds - item.price) }
+        val updated = _ownedFurniture.value + item.id
+        _ownedFurniture.value = updated
+        saveOwnedFurniture(updated)
+        persistPet()
+        return true
+    }
+
+    /** Places a furniture item in the given slot. */
+    suspend fun placeFurniture(slotIndex: Int, furnitureId: String) {
+        roomLayoutDao.upsert(RoomLayout(slotIndex = slotIndex, furnitureId = furnitureId))
+        loadRoomLayout()
+    }
+
+    /** Removes whatever is in the given slot. */
+    suspend fun removeFurniture(slotIndex: Int) {
+        roomLayoutDao.removeSlot(slotIndex)
+        loadRoomLayout()
+    }
+
+    /** Returns (comfort, fun, beauty) totals from currently placed furniture. */
+    fun getRoomStats(): Triple<Int, Int, Int> {
+        val layout = _roomLayout.value
+        if (layout.isEmpty()) return Triple(0, 0, 0)
+        val items = layout.mapNotNull { slot ->
+            FURNITURE_CATALOGUE.find { it.id == slot.furnitureId }
+        }
+        return Triple(
+            items.sumOf { it.comfort },
+            items.sumOf { it.funLevel },
+            items.sumOf { it.beauty }
+        )
     }
 
     // ----------------------------------------------------- Habit Check-in
@@ -314,7 +381,8 @@ class PetRepository private constructor(
             lastSitCheckTime = prefs.getLong(SettingsKeys.LAST_SIT_CHECK, 0L),
             lastEyeCheckTime = prefs.getLong(SettingsKeys.LAST_EYE_CHECK, 0L),
             periodBehaviorLink = prefs.getBoolean(SettingsKeys.PERIOD_BEHAVIOR_LINK, false),
-            envAwarenessEnabled = prefs.getBoolean(SettingsKeys.ENV_AWARENESS_ENABLED, true)
+            envAwarenessEnabled = prefs.getBoolean(SettingsKeys.ENV_AWARENESS_ENABLED, true),
+            ttsEnabled = prefs.getBoolean(SettingsKeys.TTS_ENABLED, false)
         )
     }
 
@@ -343,6 +411,7 @@ class PetRepository private constructor(
             putLong(SettingsKeys.LAST_EYE_CHECK, settings.lastEyeCheckTime)
             putBoolean(SettingsKeys.PERIOD_BEHAVIOR_LINK, settings.periodBehaviorLink)
             putBoolean(SettingsKeys.ENV_AWARENESS_ENABLED, settings.envAwarenessEnabled)
+            putBoolean(SettingsKeys.TTS_ENABLED, settings.ttsEnabled)
         }.apply()
     }
 
@@ -353,6 +422,15 @@ class PetRepository private constructor(
 
     private fun saveOwnedOutfits(ids: List<String>) {
         prefs.edit().putString(KEY_OWNED_OUTFITS, ids.joinToString(SEPARATOR)).apply()
+    }
+
+    private fun loadOwnedFurniture(): List<String> {
+        val raw = prefs.getString(KEY_OWNED_FURNITURE, "") ?: ""
+        return if (raw.isBlank()) DEFAULT_OWNED_FURNITURE else raw.split(SEPARATOR)
+    }
+
+    private fun saveOwnedFurniture(ids: List<String>) {
+        prefs.edit().putString(KEY_OWNED_FURNITURE, ids.joinToString(SEPARATOR)).apply()
     }
 
     // ----------------------------------------------------------- Defaults
@@ -418,6 +496,7 @@ class PetRepository private constructor(
         private const val PREFS_NAME = "deskpet_prefs"
         private const val KEY_SETTINGS_INITIALIZED = "settings_initialized"
         private const val KEY_OWNED_OUTFITS = "owned_outfits"
+        private const val KEY_OWNED_FURNITURE = "owned_furniture"
         private const val SEPARATOR = ","
 
         private const val MAX_STAT = 100
@@ -429,6 +508,9 @@ class PetRepository private constructor(
 
         /** Item ids that are owned by default. */
         private val DEFAULT_OWNED_IDS = listOf("head_bow", "collar_bell", "cloth_scarf")
+
+        /** Furniture ids that are owned by default. */
+        private val DEFAULT_OWNED_FURNITURE = listOf("wall_pink", "floor_wood", "bed_round", "decor_plant")
 
         private object SettingsKeys {
             const val OVERLAY_ENABLED = "overlay_enabled"
@@ -454,6 +536,7 @@ class PetRepository private constructor(
             const val LAST_EYE_CHECK = "last_eye_check"
             const val PERIOD_BEHAVIOR_LINK = "period_behavior_link"
             const val ENV_AWARENESS_ENABLED = "env_awareness_enabled"
+            const val TTS_ENABLED = "tts_enabled"
         }
 
         /**
@@ -520,6 +603,53 @@ class PetRepository private constructor(
             OutfitItem("acc_camera", OutfitCategory.ACCESSORY, "相机", "📷", 700, 8),
             OutfitItem("acc_gift", OutfitCategory.ACCESSORY, "礼物盒", "🎁", 550, 6),
             OutfitItem("acc_star", OutfitCategory.ACCESSORY, "星星权杖", "✨", 1000, 13)
+        )
+
+        /**
+         * The full catalogue of furniture items for the pet home decoration.
+         * Categories: WALLPAPER, FLOOR, BED, TABLE, DECORATION, TOY.
+         * Each item has comfort/fun/beauty attributes that affect pet behavior.
+         */
+        val FURNITURE_CATALOGUE: List<FurnitureItem> = listOf(
+            // WALLPAPER (slot 0)
+            FurnitureItem("wall_pink", FurnitureCategory.WALLPAPER, "粉色墙纸", "🩷", 0, 1, 2, 0, 5),
+            FurnitureItem("wall_mint", FurnitureCategory.WALLPAPER, "薄荷墙纸", "🌿", 80, 3, 3, 0, 8),
+            FurnitureItem("wall_star", FurnitureCategory.WALLPAPER, "星空墙纸", "✨", 200, 5, 5, 2, 15),
+            FurnitureItem("wall_rainbow", FurnitureCategory.WALLPAPER, "彩虹墙纸", "🌈", 500, 10, 8, 5, 25),
+
+            // FLOOR (slot 1)
+            FurnitureItem("floor_wood", FurnitureCategory.FLOOR, "木地板", "🪵", 0, 1, 3, 0, 3),
+            FurnitureItem("floor_tile", FurnitureCategory.FLOOR, "瓷砖地板", "⬜", 60, 2, 2, 0, 5),
+            FurnitureItem("floor_carpet", FurnitureCategory.FLOOR, "毛绒地毯", "🟥", 150, 4, 8, 3, 10),
+            FurnitureItem("floor_cloud", FurnitureCategory.FLOOR, "云朵地板", "☁️", 400, 8, 10, 5, 20),
+
+            // BED (slot 2)
+            FurnitureItem("bed_round", FurnitureCategory.BED, "圆垫床", "🛏️", 0, 1, 5, 0, 2),
+            FurnitureItem("bed_basket", FurnitureCategory.BED, "编织篮床", "🧺", 100, 3, 8, 2, 5),
+            FurnitureItem("bed_castle", FurnitureCategory.BED, "城堡床", "🏰", 300, 6, 12, 5, 15),
+            FurnitureItem("bed_cloud", FurnitureCategory.BED, "云朵床", "☁️", 600, 12, 18, 8, 25),
+
+            // TABLE (slot 3)
+            FurnitureItem("table_wood", FurnitureCategory.TABLE, "木桌", "🪑", 0, 1, 0, 2, 3),
+            FurnitureItem("table_tea", FurnitureCategory.TABLE, "茶几", "🍵", 120, 3, 0, 5, 8),
+            FurnitureItem("table_desk", FurnitureCategory.TABLE, "书桌", "📚", 250, 5, 0, 10, 12),
+            FurnitureItem("table_cafe", FurnitureCategory.TABLE, "咖啡桌", "☕", 350, 7, 3, 8, 15),
+
+            // DECORATION (slots 4-5)
+            FurnitureItem("decor_plant", FurnitureCategory.DECORATION, "小盆栽", "🪴", 0, 1, 2, 1, 8),
+            FurnitureItem("decor_flower", FurnitureCategory.DECORATION, "花瓶", "🌸", 80, 2, 3, 2, 10),
+            FurnitureItem("decor_lamp", FurnitureCategory.DECORATION, "小夜灯", "💡", 150, 4, 5, 3, 12),
+            FurnitureItem("decor_clock", FurnitureCategory.DECORATION, "挂钟", "🕐", 200, 5, 0, 5, 10),
+            FurnitureItem("decor_painting", FurnitureCategory.DECORATION, "挂画", "🖼️", 300, 6, 0, 8, 18),
+            FurnitureItem("decor_crystal", FurnitureCategory.DECORATION, "水晶球", "🔮", 500, 10, 5, 10, 25),
+
+            // TOY (slots 6-7)
+            FurnitureItem("toy_ball", FurnitureCategory.TOY, "毛线球", "🧶", 0, 1, 0, 8, 3),
+            FurnitureItem("toy_mouse", FurnitureCategory.TOY, "小老鼠", "🐭", 80, 2, 0, 12, 5),
+            FurnitureItem("toy_tower", FurnitureCategory.TOY, "猫爬架", "🏗️", 250, 5, 5, 18, 12),
+            FurnitureItem("toy_tunnel", FurnitureCategory.TOY, "隧道", "🌀", 200, 4, 3, 15, 10),
+            FurnitureItem("toy_piano", FurnitureCategory.TOY, "小钢琴", "🎹", 400, 8, 8, 20, 18),
+            FurnitureItem("toy_robot", FurnitureCategory.TOY, "机器人", "🤖", 600, 12, 10, 25, 20)
         )
 
         @Volatile

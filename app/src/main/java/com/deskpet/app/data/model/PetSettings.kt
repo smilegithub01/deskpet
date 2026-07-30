@@ -26,5 +26,6 @@ data class PetSettings(
     val lastSitCheckTime: Long = 0L,
     val lastEyeCheckTime: Long = 0L,
     val periodBehaviorLink: Boolean = false,
-    val envAwarenessEnabled: Boolean = true
+    val envAwarenessEnabled: Boolean = true,
+    val ttsEnabled: Boolean = false
 )

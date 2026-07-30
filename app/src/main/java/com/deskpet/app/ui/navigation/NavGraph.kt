@@ -14,12 +14,15 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.deskpet.app.ui.components.BottomNav
 import com.deskpet.app.ui.components.PetDestinations
+import com.deskpet.app.ui.screens.codex.CodexScreen
+import com.deskpet.app.ui.screens.decor.DecorScreen
 import com.deskpet.app.ui.screens.diary.DiaryScreen
 import com.deskpet.app.ui.screens.dressup.DressUpScreen
 import com.deskpet.app.ui.screens.health.HealthScreen
 import com.deskpet.app.ui.screens.home.PetHomeScreen
 import com.deskpet.app.ui.screens.onboarding.OnboardingScreen
 import com.deskpet.app.ui.screens.settings.SettingsScreen
+import com.deskpet.app.ui.screens.travel.TravelScreen
 
 /**
  * Top-level navigation graph.
@@ -87,11 +90,29 @@ fun NavGraph() {
                     },
                     onNavigateToDiary = {
                         navController.navigate(PetDestinations.DIARY)
+                    },
+                    onNavigateToDecor = {
+                        navController.navigate(PetDestinations.DECOR)
+                    },
+                    onNavigateToTravel = {
+                        navController.navigate(PetDestinations.TRAVEL)
+                    },
+                    onNavigateToCodex = {
+                        navController.navigate(PetDestinations.CODEX)
                     }
                 )
             }
             composable(PetDestinations.DIARY) {
                 DiaryScreen(onBack = { navController.popBackStack() })
+            }
+            composable(PetDestinations.DECOR) {
+                DecorScreen(onBack = { navController.popBackStack() })
+            }
+            composable(PetDestinations.TRAVEL) {
+                TravelScreen(onBack = { navController.popBackStack() })
+            }
+            composable(PetDestinations.CODEX) {
+                CodexScreen(onBack = { navController.popBackStack() })
             }
             composable(PetDestinations.DRESSUP) {
                 DressUpScreen()
