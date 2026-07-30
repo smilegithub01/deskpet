@@ -37,12 +37,10 @@ jobs:
           java-version: '17'
 
       # ---------- 配置 Android SDK ----------
+      # ubuntu-latest 已预装 Android SDK，此处仅接受 license
+      # 缺失的 SDK 组件由 AGP 自动下载
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
-        with:
-          packages: |
-            platforms;android-34
-            build-tools;34.0.0
 
       # 移除机器特定的 local.properties（CI 通过 ANDROID_SDK_ROOT 定位 SDK）
       - name: Remove local.properties
