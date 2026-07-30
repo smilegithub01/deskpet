@@ -47,7 +47,7 @@ import com.deskpet.app.DeskPetApplication
 import com.deskpet.app.data.model.OutfitCategory
 import com.deskpet.app.data.model.OutfitItem
 import com.deskpet.app.data.model.Pet
-import com.deskpet.app.data.model.equippedOutfitEmojis
+import com.deskpet.app.data.model.equippedOutfitIds
 import com.deskpet.app.ui.components.PetCanvas
 import com.deskpet.app.util.SoundHelper
 import com.deskpet.app.util.SoundType
@@ -115,7 +115,7 @@ fun DressUpScreen() {
 
             // ---- Pet preview ----
             val previewOutfits = remember(pet) {
-                pet.equippedOutfitEmojis(repository.getOutfitItems())
+                pet.equippedOutfitIds(repository.getOutfitItems())
             }
             DressUpPreview(color = pet.color, species = pet.species, outfits = previewOutfits)
 
@@ -217,12 +217,12 @@ private fun DressUpPreview(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(160.dp),
+            .height(200.dp),
         contentAlignment = Alignment.Center
     ) {
         Box(
             modifier = Modifier
-                .size(120.dp)
+                .size(180.dp)
                 .shadow(8.dp, CircleShape)
                 .clip(CircleShape)
                 .background(
@@ -235,7 +235,7 @@ private fun DressUpPreview(
                 )
         )
         PetCanvas(
-            modifier = Modifier.size(110.dp),
+            modifier = Modifier.size(180.dp),
             color = color,
             species = species,
             state = com.deskpet.app.data.model.PetState.IDLE,
