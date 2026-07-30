@@ -1,256 +1,355 @@
-# 桌面宠物 · 小团子 — Android 编译指南
+<div align="center">
 
-## 一、你需要准备什么
+# 🐱 小团子 DeskPet
 
-### 1. 安装 JDK 17（必须）
+### 一只住在手机桌面上的治愈系电子宠物
 
-这是编译 Android 项目的基础。
+**喂食 · 抚摸 · 装扮 · 旅行 · 写日记 · 陪你度过每一天**
 
-**Windows:**
-- 下载 Oracle JDK 17 或 OpenJDK 17: https://adoptium.net/temurin/releases/?version=17
-- 安装时勾选「设置 JAVA_HOME 环境变量」
-- 安装后打开命令行验证: `java -version` 应显示 17.x.x
+[![Android](https://img.shields.io/badge/Android-8.0%2B-34A853?logo=android&logoColor=white)](https://www.android.com)
+[![Kotlin](https://img.shields.io/badge/Kotlin-1.9.22-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-Material3-4285F4?logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![CI](https://github.com/smilegithub01/deskpet/actions/workflows/android-ci.yml/badge.svg)](https://github.com/smilegithub01/deskpet/actions)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-ff69b4.svg)](https://github.com/smilegithub01/deskpet/pulls)
 
-**macOS:**
-```bash
-brew install openjdk@17
-sudo ln -sfn $(brew --prefix)/opt/openjdk@17/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk-17.jdk
-```
-
-### 2. 安装 Android Studio（必须）
-
-- 下载地址: https://developer.android.com/studio
-- 选择你的系统版本（Windows / Mac / Linux）
-- 安装时保持默认选项即可
-- 首次启动会自动下载 Android SDK
-
-### 3. 下载 Android SDK
-
-Android Studio 首次启动后会引导你下载 SDK:
-- 打开 Android Studio → Tools → SDK Manager
-- 勾选 **Android 14.0 (API 34)** — 这是编译目标
-- 确保勾选 **Android SDK Build-Tools 34**
-- 确保勾选 **Android SDK Platform-Tools**
-- 点 Apply 下载（约 2-3 GB）
+</div>
 
 ---
 
-## 二、打开项目
+> 🌟 **小团子**是一只永远在你屏幕上的小宠物。它会饿、会开心、会犯困，会在你忙碌时安静等待，在你回来时蹦蹦跳跳。它记得你每天和它的互动，会写日记，会在下雨天提醒你带伞，会在你心情不好时默默陪着你。
 
-### 方式一: 用 Android Studio 打开（推荐）
+---
 
-1. 解压 `DeskPet.zip` 到任意目录（路径中不要有中文和空格）
-2. 打开 Android Studio
-3. 选择 `File → Open`
-4. 选择解压后的 `DeskPet` 文件夹（注意是包含 `settings.gradle.kts` 的根目录）
-5. 等待 Gradle Sync 完成（首次会下载依赖，约 5-15 分钟，取决于网速）
-6. 如果提示下载 Gradle 8.5，点确认下载
+## ✨ 核心特性
 
-### 方式二: 命令行编译
+### 🐾 真正活着的宠物
 
-如果你不想用 Android Studio 的 IDE，可以直接用命令行:
+| 特性 | 描述 |
+|------|------|
+| 🍖 **喂食互动** | 4 种食物可选，喂食后饱腹度提升，宠物开心进食 |
+| 🤚 **抚摸反馈** | 轻触宠物触发爱心粒子，亲密度随之增长 |
+| 😊 **心情系统** | 5 档心情值，宠物表情和行为随心情实时变化 |
+| 😴 **自动行为** | 宠物会自己走动、发呆、打盹，偶尔冒出气泡说话 |
+| 📉 **离线衰减** | 关闭 App 后宠物会逐渐变饿，重新打开时记得"等了你很久" |
 
-**Windows:**
-```cmd
-cd DeskPet
-gradlew.bat assembleDebug
-```
+### 👗 装扮系统
 
-**macOS / Linux:**
+- **48 件服饰** 全部 Canvas 矢量手绘，与宠物风格统一无割裂
+- 6 大分类：帽子、眼镜、项圈、服装、尾巴、配饰
+- 自由搭配，实时预览全身效果
+- 钻石商店购买，稀有度分级
+
+### 🏠 宠物小窝
+
+- 2D 房间场景，6 类家具自由摆放
+- 舒适度 / 趣味度 / 美观度三维属性影响宠物状态
+- 家具同样 Canvas 矢量绘制，风格一致
+
+### ✈️ 旅行放置
+
+- 短途 / 中途 / 长途三档旅行时长
+- 宠物出门后寄回**手写明信片**，附目的地风景
+- 旅行归来带回礼物：钻石、限定装扮、食材
+- 等级解锁更多目的地
+
+### 📖 宠物日记
+
+- 每天自动生成一篇宠物视角的日记
+- 日记内容根据当天互动智能匹配模板
+- "今天主人来找我玩了 5 次，我是全世界最幸福的小团子！"
+
+### 🏆 成就 & 图鉴
+
+- 三大类成就：互动 / 养成 / 探索
+- 服饰图鉴、明信片图鉴、物种图鉴
+- 解锁成就播放专属音效 + 钻石奖励
+
+### 💬 语音 TTS
+
+- Android 原生 TextToSpeech，中文语音
+- 语速 0.8 + 音调 1.2，更可爱的萌系声音
+- 8 大触发场景：启动、抚摸、喂食、打卡、旅行归来等
+- 设备不支持时自动降级为纯文字气泡
+
+### 🎨 社交分享
+
+- 5 种分享卡片：每日状态 / 装扮搭配 / 成就解锁 / 旅行明信片 / 打卡成就
+- 3 种模板风格：清新粉、治愈绿、简约白
+- 1080×1080 高清 Bitmap 渲染，一键分享到社交平台
+
+### 🌤️ 环境感知
+
+- **天气联动**：晴天戴墨镜、雨天撑小伞、高温打盹
+- **节日联动**：春节穿新衣、中秋送祝福、生日戴生日帽
+- **每日一言**：Hitokoto API 随机一句话，宠物念给你听
+- **农历节气**：二十四节气养生提示
+
+### 💊 健康关怀
+
+- 喝水 / 久坐 / 护眼三档健康提醒
+- 打卡后宠物获得奖励，连续打卡有额外钻石
+- 全部提醒完成时宠物进入兴奋状态 + 金色爱心粒子
+- **经期联动**（默认关闭，数据仅存本地）：经期时宠物进入安慰模式，说话更温柔
+
+---
+
+## 📸 功能预览
+
+<div align="center">
+
+| 首页 · 与宠物互动 | 装扮 · 自由搭配 | 小窝 · 家具装饰 |
+|:---:|:---:|:---:|
+| 喂食、抚摸、拍照、心情选择 | 48 件矢量服饰实时预览 | 6 类家具自由摆放 |
+
+| 旅行 · 明信片收集 | 日记 · 宠物视角 | 成就 · 图鉴解锁 |
+|:---:|:---:|:---:|
+| 放置旅行，寄回手写信 | 每日自动生成 | 三大图鉴收集 |
+
+</div>
+
+> 宠物全部使用 **Canvas 矢量绘制**，无图片资源依赖，任意分辨率下都清晰锐利。
+
+---
+
+## 🚀 快速开始
+
+### 下载安装
+
+**方式一：GitHub Actions 构建（推荐）**
+
+前往 [Actions 页面](https://github.com/smilegithub01/deskpet/actions)，选择最近的成功构建，下载 `deskpet-debug-apk` 产物。
+
+**方式二：本地编译**
+
 ```bash
-cd DeskPet
+# 克隆仓库
+git clone https://github.com/smilegithub01/deskpet.git
+cd deskpet
+
+# 编译 Debug APK
 chmod +x gradlew
 ./gradlew assembleDebug
+
+# APK 生成在
+# app/build/outputs/apk/debug/app-debug.apk
 ```
 
-首次运行会自动下载 Gradle 8.5 和所有依赖。编译成功后 APK 在:
+**方式三：Release 版本**
+
+前往 [Releases 页面](https://github.com/smilegithub01/deskpet/releases) 下载已发布的 APK。
+
+### 安装到手机
+
+1. 将 APK 传到手机（微信 / U 盘 / ADB 均可）
+2. 点击安装，如提示「未知来源」请允许
+3. 打开 App，选择宠物种类和毛色，为它取个名字
+4. 授予悬浮窗权限 —— 小团子就会出现在你的桌面上了 🎉
+
+### 首次使用
+
 ```
-app/build/outputs/apk/debug/app-debug.apk
+打开 App → 选宠物（猫/狗/兔/仓鼠）→ 选毛色 → 取名 → 选性格
+    → 授予悬浮窗权限 → 小团子浮在桌面上啦！
 ```
 
 ---
 
-## 三、编译生成 APK
+## 🛠️ 技术栈
 
-### 在 Android Studio 中
+| 类别 | 技术 |
+|------|------|
+| 语言 | Kotlin 1.9.22 |
+| UI 框架 | Jetpack Compose + Material3 |
+| 架构 | MVVM (ViewModel + StateFlow) |
+| 数据库 | Room (SQLite) |
+| 后台任务 | WorkManager |
+| 网络 | OkHttp 4.12 |
+| 图像渲染 | Android Canvas (矢量手绘) |
+| 语音 | Android TextToSpeech |
+| 导航 | Navigation Compose |
+| 图片加载 | Coil |
 
-1. 顶部菜单: `Build → Build Bundle(s) / APK(s) → Build APK(s)`
-2. 等待右下角进度条完成
-3. 完成后点通知中的 `locate` 找到 APK 文件
-4. APK 路径: `app/build/outputs/apk/debug/app-debug.apk`
+### 技术规格
 
-### 命令行
+```
+minSdk:      26 (Android 8.0)
+targetSdk:   34 (Android 14)
+compileSdk:  34
+Java:        17
+Gradle:      8.5
+AGP:         8.2.2
+```
+
+---
+
+## 📂 项目结构
+
+```
+deskpet/
+├── .github/workflows/          # CI/CD 流水线
+│   ├── android-ci.yml          # 自动构建 (push/PR 触发)
+│   └── release.yml             # 发布 Release (tag 触发)
+├── app/src/main/java/com/deskpet/app/
+│   ├── DeskPetApplication.kt   # Application 入口
+│   ├── MainActivity.kt         # 主界面
+│   ├── data/
+│   │   ├── model/              # 20+ 数据模型 (Pet, Outfit, Postcard...)
+│   │   ├── db/                 # Room 数据库 + 13 个 DAO
+│   │   └── repository/         # 数据仓库层
+│   ├── service/
+│   │   ├── PetOverlayService.kt    # 悬浮窗服务 (核心)
+│   │   ├── PetBehaviorEngine.kt    # 行为引擎 (自动行为/状态切换)
+│   │   ├── PetMemoryEngine.kt      # 记忆引擎 (日记生成)
+│   │   ├── AchievementEngine.kt    # 成就引擎
+│   │   ├── TravelEngine.kt         # 旅行引擎
+│   │   ├── PeriodPhaseEngine.kt    # 经期阶段引擎
+│   │   └── EnvApiService.kt        # 环境API (天气/一言)
+│   ├── util/
+│   │   ├── SoundHelper.kt          # 程序化音效合成 (13种)
+│   │   ├── SpeechHelper.kt         # TTS 语音
+│   │   ├── PhotoHelper.kt          # 拍照渲染
+│   │   ├── ShareCardRenderer.kt    # 分享卡片渲染
+│   │   ├── OutfitRenderer.kt       # 服饰矢量渲染
+│   │   ├── FurnitureRenderer.kt    # 家具矢量渲染
+│   │   ├── LunarCalendarHelper.kt  # 农历/节气计算
+│   │   └── DialogueBank.kt         # 对话文案池
+│   └── ui/
+│       ├── components/          # PetCanvas, OutfitRenderer, RoomScene...
+│       ├── screens/             # 10+ 页面
+│       │   ├── home/            # 宠物主页
+│       │   ├── dressup/         # 装扮
+│       │   ├── decor/           # 小窝
+│       │   ├── travel/          # 旅行
+│       │   ├── diary/           # 日记
+│       │   ├── codex/           # 图鉴
+│       │   ├── companion/       # 共同养育
+│       │   ├── health/          # 健康提醒
+│       │   ├── settings/        # 设置
+│       │   └── onboarding/      # 引导页
+│       ├── theme/               # 颜色/字体/主题
+│       └── navigation/          # 导航图
+└── docs/                        # 设计文档 & 路线图
+```
+
+---
+
+## 🗺️ 功能路线图
+
+项目按 **L0 → L3** 四层递进设计，每层是下一层的基础：
+
+| 层级 | 名称 | 状态 | 核心内容 |
+|------|------|:---:|---------|
+| **L0** | 基础修复层 | ✅ 完成 | 状态持久化、装扮矢量升级、拍照落地、音效完善 |
+| **L1** | 情感引擎层 | ✅ 完成 | 宠物记忆日记、习惯养成联动、经期行为联动、环境感知 |
+| **L2** | 内容丰富层 | ✅ 完成 | 家居装饰、旅行放置、成就图鉴、语音 TTS |
+| **L3** | 社交传播层 | ✅ 完成 | 分享卡片、共同养育 (stub) |
+
+> 详细设计文档见 [`docs/superpowers/specs/`](docs/superpowers/specs/)
+
+---
+
+## 🔧 本地开发
+
+### 环境要求
+
+- **JDK 17**（[Adoptium Temurin](https://adoptium.net/temurin/releases/?version=17)）
+- **Android Studio** Hedgehog (2023.1.1) 或更高
+- **Android SDK** Platform 34 + Build-Tools 34.0.0
+
+### 用 Android Studio 打开
+
+1. `File → Open` 选择项目根目录
+2. 等待 Gradle Sync 完成（首次约 5-15 分钟）
+3. 连接手机，点击 ▶ Run
+
+### 命令行编译
 
 ```bash
 # Debug APK
 ./gradlew assembleDebug
 
-# Release APK（需要签名，暂时用 debug 签名）
+# Release APK（未签名）
 ./gradlew assembleRelease
+
+# 运行单元测试
+./gradlew testDebugUnitTest
+
+# Lint 检查
+./gradlew lintDebug
 ```
+
+### 国内网络加速
+
+项目已配置阿里云 / 腾讯云 Maven 镜像（仅本地开发环境生效，CI 自动切换官方源）。如遇下载超时，确认 `settings.gradle.kts` 中镜像配置存在。
 
 ---
 
-## 四、安装到手机
+## ❓ 常见问题
 
-### 方法一: ADB 安装（推荐）
+<details>
+<summary><b>Gradle Sync 失败，提示下载超时</b></summary>
 
-1. 手机开启「开发者选项」和「USB 调试」
-   - 设置 → 关于手机 → 连续点击「版本号」7 次
-   - 设置 → 系统 → 开发者选项 → 开启 USB 调试
-2. USB 连接电脑
-3. 命令行执行:
-```bash
-adb install app/build/outputs/apk/debug/app-debug.apk
-```
+国内网络问题。项目已内置阿里云镜像，如仍失败请检查 `settings.gradle.kts` 中的镜像地址是否可达，或配置 VPN。
+</details>
 
-### 方法二: 直接传文件安装
+<details>
+<summary><b>提示 "SDK location not found"</b></summary>
 
-1. 把 `app-debug.apk` 发到手机（微信/QQ/U盘均可）
-2. 手机点击安装
-3. 如果提示「未知来源」，允许安装即可
-
-### 方法三: Android Studio 直接运行
-
-1. USB 连接手机
-2. Android Studio 顶部设备下拉框选择你的手机
-3. 点绿色三角形 ▶ Run 按钮
-
----
-
-## 五、首次使用
-
-1. 打开 App → 进入引导页
-2. 选择宠物种类（猫/狗/兔/仓鼠）
-3. 选择毛色（6 种颜色）
-4. 为宠物命名 + 选择性格
-5. 点击完成后会弹出悬浮窗权限申请
-6. 点击「允许」→ 跳转系统设置 → 开启「显示在其他应用上层」
-7. 返回 App → 小团子就浮在桌面上了
-
----
-
-## 六、常见问题
-
-### Q: Gradle Sync 失败，提示下载超时
-
-A: 国内网络可能无法直接访问 Google Maven 仓库。在 `settings.gradle.kts` 中加上阿里云镜像:
-
-```kotlin
-pluginManagement {
-    repositories {
-        maven { url = uri("https://maven.aliyun.com/repository/google") }
-        maven { url = uri("https://maven.aliyun.com/repository/public") }
-        google()
-        mavenCentral()
-        gradlePluginPortal()
-    }
-}
-dependencyResolutionManagement {
-    repositories {
-        maven { url = uri("https://maven.aliyun.com/repository/google") }
-        maven { url = uri("https://maven.aliyun.com/repository/public") }
-        google()
-        mavenCentral()
-    }
-}
-```
-
-### Q: 编译报错 "Kotlin version mismatch"
-
-A: 确保 Android Studio 版本 >= Hedgehog (2023.1.1)。旧版 Android Studio 不支持 Kotlin 1.9.x。
-
-### Q: 提示 "SDK location not found"
-
-A: 创建 `local.properties` 文件在项目根目录:
+在项目根目录创建 `local.properties`（此文件已在 .gitignore 中，不会提交）：
 ```properties
+# Windows
 sdk.dir=C:\\Users\\你的用户名\\AppData\\Local\\Android\\Sdk
+# macOS
+sdk.dir=/Users/你的用户名/Library/Android/sdk
 ```
-macOS: `sdk.dir=/Users/你的用户名/Library/Android/sdk`
+</details>
 
-### Q: 编译报错找不到某个 import
+<details>
+<summary><b>APK 安装后闪退</b></summary>
 
-A: 试一下 `Build → Clean Project`，然后 `Build → Rebuild Project`。如果仍然报错，把错误信息发出来，我帮你修。
-
-### Q: APK 安装后闪退
-
-A: 确认手机系统 >= Android 8.0（API 26）。查看日志:
+确认手机系统 ≥ Android 8.0（API 26）。查看日志：
 ```bash
 adb logcat | grep DeskPet
 ```
+</details>
+
+<details>
+<summary><b>编译报错找不到 import</b></summary>
+
+尝试 `Build → Clean Project` → `Build → Rebuild Project`。KSP（Room 编译器）偶尔需要清理缓存。
+</details>
+
+<details>
+<summary><b>悬浮窗不显示</b></summary>
+
+前往 设置 → 应用 → 小团子 → 显示在其他应用上层，确保权限已开启。
+</details>
 
 ---
 
-## 七、项目结构
+## 🤝 参与贡献
 
-```
-DeskPet/
-├── settings.gradle.kts          # Gradle 配置
-├── build.gradle.kts             # 项目级构建
-├── gradlew / gradlew.bat        # Gradle 命令行脚本
-├── gradle.properties            # Gradle 属性
-├── gradle/wrapper/              # Gradle Wrapper
-├── README.md                    # 本文件
-└── app/
-    ├── build.gradle.kts         # App 模块构建（依赖、SDK版本）
-    ├── proguard-rules.pro       # 代码混淆规则
-    └── src/main/
-        ├── AndroidManifest.xml   # 应用清单（权限、组件声明）
-        ├── res/                  # 资源文件
-        │   ├── values/           # 颜色、字符串、主题
-        │   ├── drawable/         # 图标
-        │   ├── mipmap-anydpi-v26/ # 自适应图标
-        │   └── xml/              # 备份规则
-        └── java/com/deskpet/app/
-            ├── DeskPetApplication.kt    # Application 入口
-            ├── MainActivity.kt          # 主界面入口
-            ├── data/
-            │   ├── model/       # 数据模型（10个文件）
-            │   ├── db/           # Room 数据库
-            │   └── repository/  # 数据仓库
-            ├── service/
-            │   ├── PetOverlayService.kt    # 悬浮窗服务（核心）
-            │   └── PetBehaviorEngine.kt     # 行为引擎
-            ├── util/
-            │   ├── PermissionHelper.kt     # 权限工具
-            │   └── NotificationHelper.kt   # 通知工具
-            └── ui/
-                ├── theme/        # 颜色、字体、主题
-                ├── components/   # 公共组件
-                ├── navigation/   # 导航
-                └── screens/      # 四个页面
-                    ├── home/      # 宠物主页
-                    ├── dressup/   # 装扮
-                    ├── health/    # 健康
-                    ├── settings/  # 设置
-                    └── onboarding/ # 引导页
-```
+欢迎提交 Issue 和 Pull Request！
+
+1. Fork 本仓库
+2. 创建特性分支：`git checkout -b feature/amazing-feature`
+3. 提交更改：`git commit -m 'Add amazing feature'`
+4. 推送分支：`git push origin feature/amazing-feature`
+5. 提交 Pull Request
 
 ---
 
-## 八、技术规格
+## 📄 许可证
 
-| 项目 | 版本 |
-|------|------|
-| Kotlin | 1.9.22 |
-| Compose Compiler | 1.5.8 |
-| Compose BOM | 2024.02.00 |
-| AGP (Android Gradle Plugin) | 8.2.2 |
-| Gradle | 8.5 |
-| minSdk | 26 (Android 8.0) |
-| targetSdk | 34 (Android 14) |
-| compileSdk | 34 |
-| Java | 17 |
+本项目基于 [MIT License](LICENSE) 开源，可自由使用、修改和分发。
 
-## 九、如果遇到编译错误
+---
 
-项目代码是 AI 生成的，可能存在少量编译问题。如果遇到报错:
+<div align="center">
 
-1. 先试 `Build → Clean Project` → `Build → Rebuild Project`
-2. 看错误信息，常见的修复方式:
-   - **import 缺失**: 根据报错补上对应 import
-   - **API 版本问题**: 某些 API 在低版本不可用，加 `@RequiresApi` 注解
-   - **参数不匹配**: 检查函数签名
-3. 把完整错误信息发给我，我来帮你修代码
+**如果小团子让你会心一笑，给个 ⭐ Star 吧！**
 
-祝你编译顺利，女朋友会喜欢的~
+Made with 💛 for everyone who needs a little companion
+
+</div>
