@@ -1,0 +1,145 @@
+name: Android CI
+
+# DeskPet Android 持续集成流水线
+# 触发条件：推送到 master / 针对 master 的 PR / 手动触发
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: '构建类型 (debug / release / both)'
+        required: false
+        default: 'both'
+        type: choice
+        options:
+          - debug
+          - release
+          - both
+
+jobs:
+  build:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      # ---------- 检出代码 ----------
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ---------- 配置 JDK 17 (项目要求 JVM 17) ----------
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # ---------- 配置 Android SDK ----------
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: |
+            platforms;android-34
+            build-tools;34.0.0
+
+      # 移除机器特定的 local.properties（CI 通过 ANDROID_SDK_ROOT 定位 SDK）
+      - name: Remove local.properties
+        run: rm -f local.properties
+
+      # ---------- Gradle 缓存（加速重复构建） ----------
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      # ---------- 授予 gradlew 执行权限 ----------
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # ---------- 解析构建类型输入 ----------
+      - name: Determine build types
+        id: bt
+        run: |
+          INPUT="${{ github.event.inputs.build_type }}"
+          if [ -z "$INPUT" ]; then INPUT="both"; fi
+          echo "type=$INPUT" >> $GITHUB_OUTPUT
+          echo "::notice::构建类型: $INPUT"
+
+      # ---------- 编译 Debug APK ----------
+      - name: Build Debug APK
+        if: steps.bt.outputs.type == 'debug' || steps.bt.outputs.type == 'both'
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      # ---------- 编译 Release APK (未签名) ----------
+      - name: Build Release APK (unsigned)
+        if: steps.bt.outputs.type == 'release' || steps.bt.outputs.type == 'both'
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+      # ---------- 运行单元测试 ----------
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest --no-daemon
+        continue-on-error: true
+
+      # ---------- Lint 静态检查 ----------
+      - name: Run Lint
+        run: ./gradlew lintDebug --no-daemon
+        continue-on-error: true
+
+      # ---------- 上传构建产物 ----------
+      - name: Upload Debug APK
+        if: steps.bt.outputs.type == 'debug' || steps.bt.outputs.type == 'both'
+        uses: actions/upload-artifact@v4
+        with:
+          name: deskpet-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Release APK
+        if: steps.bt.outputs.type == 'release' || steps.bt.outputs.type == 'both'
+        uses: actions/upload-artifact@v4
+        with:
+          name: deskpet-release-unsigned-apk
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: warn
+          retention-days: 30
+
+      # ---------- 上传 Lint 报告 ----------
+      - name: Upload Lint reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-reports
+          path: app/build/reports/lint-results-*.html
+          if-no-files-found: ignore
+          retention-days: 14
+
+      # ---------- 构建摘要 ----------
+      - name: Build summary
+        if: always()
+        run: |
+          echo "## 构建结果" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
+            SIZE=$(du -h app/build/outputs/apk/debug/app-debug.apk | cut -f1)
+            echo "✅ Debug APK 构建成功 ($SIZE)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Debug APK 未生成" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+            SIZE=$(du -h app/build/outputs/apk/release/app-release-unsigned.apk | cut -f1)
+            echo "✅ Release APK 构建成功 ($SIZE, 未签名)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "ℹ️ Release APK 未生成（需签名配置）" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**仓库**: ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "**分支**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**提交**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
