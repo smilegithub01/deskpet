@@ -14,6 +14,9 @@ import com.deskpet.app.util.SoundHelper
 import com.deskpet.app.util.SoundType
 import com.deskpet.app.util.SpeechHelper
 import com.deskpet.app.util.DialogueBank
+import com.deskpet.app.util.ShareCardData
+import com.deskpet.app.util.ShareCardRenderer
+import com.deskpet.app.util.ShareCardType
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -262,5 +265,55 @@ class PetViewModel(
     /** Clears the current toast (called after the snackbar is shown). */
     fun onToastShown() {
         _toast.value = null
+    }
+
+    /** 分享: generate a daily status share card and launch the system share sheet. */
+    fun onShareDailyStatus() {
+        val pet = repository.getPet()
+        val context = getApplication<Application>()
+        val settings = repository.getSettings()
+        val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+            .format(java.util.Date())
+
+        viewModelScope.launch {
+            // Try to get today's diary for the excerpt
+            val diary = runCatching {
+                getApplication<DeskPetApplication>().database.petDiaryDao().getByDate(today)
+            }.getOrNull()
+            val diaryExcerpt = diary?.content ?: "今天和主人在一起度过了平凡又开心的一天~"
+
+            // Log the share interaction
+            interactionLogDao.insert(InteractionLog(
+                type = InteractionType.SHARE.name,
+                timestamp = System.currentTimeMillis(),
+                detail = ShareCardType.DAILY_STATUS.name
+            ))
+
+            val data = ShareCardData(
+                pet = pet,
+                type = ShareCardType.DAILY_STATUS,
+                moodText = moodTextForState(_petState.value),
+                diaryExcerpt = diaryExcerpt,
+                showWatermark = settings.shareWatermark
+            )
+
+            val success = ShareCardRenderer.renderAndShare(context, data)
+            _toast.value = if (success) "分享卡片已生成" else "生成失败，请重试"
+            delay(2000)
+            _toast.value = null
+        }
+    }
+
+    /** Returns a mood description string for share card rendering. */
+    private fun moodTextForState(state: PetState): String = when (state) {
+        PetState.HAPPY, PetState.EXCITED -> "心情超好～"
+        PetState.EATING -> "正在吃饭～"
+        PetState.HUNGRY -> "肚子饿了…"
+        PetState.SLEEPY -> "困了…"
+        PetState.COMFORTING -> "很安心～"
+        PetState.PLAYING -> "玩耍中～"
+        PetState.HIDDEN -> "躲起来啦"
+        PetState.PAUSED -> "休息中"
+        PetState.IDLE -> "乖巧地等着你"
     }
 }

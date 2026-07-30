@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Fastfood
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.Checkroom
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -79,6 +80,7 @@ fun PetHomeScreen(
     onNavigateToDecor: () -> Unit,
     onNavigateToTravel: () -> Unit,
     onNavigateToCodex: () -> Unit,
+    onNavigateToCompanion: () -> Unit,
     viewModel: PetViewModel = viewModel()
 ) {
     val pet by viewModel.pet.collectAsStateWithLifecycle()
@@ -140,11 +142,12 @@ fun PetHomeScreen(
 
             Spacer(Modifier.height(12.dp))
 
-            // ---- Quick access: 小窝 / 旅行 / 图鉴 ----
+            // ---- Quick access: 小窝 / 旅行 / 图鉴 / 伙伴 ----
             QuickAccessRow(
                 onDecor = onNavigateToDecor,
                 onTravel = onNavigateToTravel,
-                onCodex = onNavigateToCodex
+                onCodex = onNavigateToCodex,
+                onCompanion = onNavigateToCompanion
             )
 
             Spacer(Modifier.height(12.dp))
@@ -159,7 +162,8 @@ fun PetHomeScreen(
                 onPet = viewModel::onPet,
                 onFeed = viewModel::onOpenFoodSheet,
                 onDressUp = onNavigateToDressUp,
-                onPhoto = viewModel::onPhoto
+                onPhoto = viewModel::onPhoto,
+                onShare = viewModel::onShareDailyStatus
             )
         }
 
@@ -455,7 +459,8 @@ private fun ActionRow(
     onPet: () -> Unit,
     onFeed: () -> Unit,
     onDressUp: () -> Unit,
-    onPhoto: () -> Unit
+    onPhoto: () -> Unit,
+    onShare: () -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -465,6 +470,7 @@ private fun ActionRow(
         ActionButton("喂食", Icons.Filled.Fastfood, onFeed)
         ActionButton("装扮", Icons.Filled.Checkroom, onDressUp)
         ActionButton("拍照", Icons.Filled.CameraAlt, onPhoto)
+        ActionButton("分享", Icons.Filled.Share, onShare)
     }
 }
 
@@ -541,7 +547,8 @@ private fun FoodCard(food: FoodOption, onClick: () -> Unit) {
 private fun QuickAccessRow(
     onDecor: () -> Unit,
     onTravel: () -> Unit,
-    onCodex: () -> Unit
+    onCodex: () -> Unit,
+    onCompanion: () -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -550,6 +557,7 @@ private fun QuickAccessRow(
         QuickAccessButton(emoji = "🏠", label = "小窝", onClick = onDecor)
         QuickAccessButton(emoji = "✈️", label = "旅行", onClick = onTravel)
         QuickAccessButton(emoji = "📖", label = "图鉴", onClick = onCodex)
+        QuickAccessButton(emoji = "🤝", label = "伙伴", onClick = onCompanion)
     }
 }
 

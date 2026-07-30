@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -31,17 +32,28 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.deskpet.app.DeskPetApplication
+import com.deskpet.app.data.model.InteractionLog
+import com.deskpet.app.data.model.InteractionType
+import com.deskpet.app.data.model.Postcard
 import com.deskpet.app.data.model.TravelDestination
+import com.deskpet.app.util.ShareCardData
+import com.deskpet.app.util.ShareCardRenderer
+import com.deskpet.app.util.ShareCardType
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -317,6 +329,9 @@ private fun DurationSelectDialog(
 
 @Composable
 private fun PostcardCard(emoji: String, destination: String, message: String, date: String) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -328,7 +343,7 @@ private fun PostcardCard(emoji: String, destination: String, message: String, da
     ) {
         Text(text = emoji, fontSize = 24.sp)
         Spacer(Modifier.size(8.dp))
-        Column {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = "$destination · $date",
                 fontSize = 12.sp,
@@ -340,6 +355,43 @@ private fun PostcardCard(emoji: String, destination: String, message: String, da
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurface,
                 fontStyle = FontStyle.Italic
+            )
+        }
+        IconButton(
+            onClick = {
+                scope.launch(Dispatchers.IO) {
+                    val app = context.applicationContext as DeskPetApplication
+                    val pet = app.repository.getPet()
+                    val settings = app.repository.getSettings()
+                    val postcard = Postcard(
+                        destinationId = destination,
+                        destinationName = destination,
+                        destinationEmoji = emoji,
+                        date = date,
+                        message = message,
+                        sceneDrawKey = destination,
+                        petEmoji = pet.species.displayName
+                    )
+                    app.database.interactionLogDao().insert(InteractionLog(
+                        type = InteractionType.SHARE.name,
+                        timestamp = System.currentTimeMillis(),
+                        detail = ShareCardType.POSTCARD.name
+                    ))
+                    ShareCardRenderer.renderAndShare(context, ShareCardData(
+                        pet = pet,
+                        type = ShareCardType.POSTCARD,
+                        postcard = postcard,
+                        showWatermark = settings.shareWatermark
+                    ))
+                }
+            },
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(
+                Icons.Filled.Share,
+                contentDescription = "分享明信片",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp)
             )
         }
     }

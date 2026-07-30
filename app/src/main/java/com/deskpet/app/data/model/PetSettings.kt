@@ -27,5 +27,6 @@ data class PetSettings(
     val lastEyeCheckTime: Long = 0L,
     val periodBehaviorLink: Boolean = false,
     val envAwarenessEnabled: Boolean = true,
-    val ttsEnabled: Boolean = false
+    val ttsEnabled: Boolean = false,
+    val shareWatermark: Boolean = true
 )

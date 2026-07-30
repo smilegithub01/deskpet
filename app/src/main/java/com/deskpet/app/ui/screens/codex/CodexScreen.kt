@@ -2,6 +2,7 @@ package com.deskpet.app.ui.screens.codex
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,13 +32,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.deskpet.app.DeskPetApplication
 import com.deskpet.app.data.model.Achievement
 import com.deskpet.app.data.model.AchievementCategory
+import com.deskpet.app.data.model.InteractionLog
+import com.deskpet.app.data.model.InteractionType
+import com.deskpet.app.util.ShareCardData
+import com.deskpet.app.util.ShareCardRenderer
+import com.deskpet.app.util.ShareCardType
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -113,6 +125,8 @@ fun CodexScreen(
     // Show newly unlocked achievement dialog
     if (newlyUnlocked.isNotEmpty()) {
         val achievement = newlyUnlocked.first()
+        val context = LocalContext.current
+        val scope = rememberCoroutineScope()
         AlertDialog(
             onDismissRequest = { viewModel.clearNewlyUnlocked() },
             title = { Text("🎉 成就解锁!") },
@@ -131,8 +145,28 @@ fun CodexScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { viewModel.clearNewlyUnlocked() }) {
-                    Text("太棒了!")
+                Row {
+                    TextButton(onClick = {
+                        scope.launch(Dispatchers.IO) {
+                            val app = context.applicationContext as DeskPetApplication
+                            val pet = app.repository.getPet()
+                            val settings = app.repository.getSettings()
+                            app.database.interactionLogDao().insert(InteractionLog(
+                                type = InteractionType.SHARE.name,
+                                timestamp = System.currentTimeMillis(),
+                                detail = ShareCardType.ACHIEVEMENT.name
+                            ))
+                            ShareCardRenderer.renderAndShare(context, ShareCardData(
+                                pet = pet,
+                                type = ShareCardType.ACHIEVEMENT,
+                                achievement = achievement,
+                                showWatermark = settings.shareWatermark
+                            ))
+                        }
+                    }) { Text("分享") }
+                    TextButton(onClick = { viewModel.clearNewlyUnlocked() }) {
+                        Text("太棒了!")
+                    }
                 }
             }
         )
@@ -142,6 +176,8 @@ fun CodexScreen(
 @Composable
 private fun AchievementCard(achievement: Achievement, unlocked: Boolean) {
     val alpha = if (unlocked) 1f else 0.4f
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     Row(
         modifier = Modifier
@@ -177,6 +213,35 @@ private fun AchievementCard(achievement: Achievement, unlocked: Boolean) {
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.primary
             )
+            Spacer(Modifier.size(4.dp))
+            IconButton(
+                onClick = {
+                    scope.launch(Dispatchers.IO) {
+                        val app = context.applicationContext as DeskPetApplication
+                        val pet = app.repository.getPet()
+                        val settings = app.repository.getSettings()
+                        app.database.interactionLogDao().insert(InteractionLog(
+                            type = InteractionType.SHARE.name,
+                            timestamp = System.currentTimeMillis(),
+                            detail = ShareCardType.ACHIEVEMENT.name
+                        ))
+                        ShareCardRenderer.renderAndShare(context, ShareCardData(
+                            pet = pet,
+                            type = ShareCardType.ACHIEVEMENT,
+                            achievement = achievement,
+                            showWatermark = settings.shareWatermark
+                        ))
+                    }
+                },
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    Icons.Filled.Share,
+                    contentDescription = "分享",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
         }
     }
 }

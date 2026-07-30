@@ -15,6 +15,7 @@ import androidx.navigation.compose.rememberNavController
 import com.deskpet.app.ui.components.BottomNav
 import com.deskpet.app.ui.components.PetDestinations
 import com.deskpet.app.ui.screens.codex.CodexScreen
+import com.deskpet.app.ui.screens.companion.CompanionScreen
 import com.deskpet.app.ui.screens.decor.DecorScreen
 import com.deskpet.app.ui.screens.diary.DiaryScreen
 import com.deskpet.app.ui.screens.dressup.DressUpScreen
@@ -99,6 +100,9 @@ fun NavGraph() {
                     },
                     onNavigateToCodex = {
                         navController.navigate(PetDestinations.CODEX)
+                    },
+                    onNavigateToCompanion = {
+                        navController.navigate(PetDestinations.COMPANION)
                     }
                 )
             }
@@ -113,6 +117,9 @@ fun NavGraph() {
             }
             composable(PetDestinations.CODEX) {
                 CodexScreen(onBack = { navController.popBackStack() })
+            }
+            composable(PetDestinations.COMPANION) {
+                CompanionScreen(onBack = { navController.popBackStack() })
             }
             composable(PetDestinations.DRESSUP) {
                 DressUpScreen()

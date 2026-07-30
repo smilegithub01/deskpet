@@ -214,6 +214,14 @@ fun SettingsScreen() {
                         repository.updateSettings { it.copy(ttsEnabled = v) }
                     }
                 )
+                ToggleRow(
+                    icon = "🏷️",
+                    label = "分享水印",
+                    checked = settings.shareWatermark,
+                    onCheckedChange = { v ->
+                        repository.updateSettings { it.copy(shareWatermark = v) }
+                    }
+                )
             }
         }
 

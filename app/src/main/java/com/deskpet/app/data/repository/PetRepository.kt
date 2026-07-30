@@ -382,7 +382,8 @@ class PetRepository private constructor(
             lastEyeCheckTime = prefs.getLong(SettingsKeys.LAST_EYE_CHECK, 0L),
             periodBehaviorLink = prefs.getBoolean(SettingsKeys.PERIOD_BEHAVIOR_LINK, false),
             envAwarenessEnabled = prefs.getBoolean(SettingsKeys.ENV_AWARENESS_ENABLED, true),
-            ttsEnabled = prefs.getBoolean(SettingsKeys.TTS_ENABLED, false)
+            ttsEnabled = prefs.getBoolean(SettingsKeys.TTS_ENABLED, false),
+            shareWatermark = prefs.getBoolean(SettingsKeys.SHARE_WATERMARK, true)
         )
     }
 
@@ -412,6 +413,7 @@ class PetRepository private constructor(
             putBoolean(SettingsKeys.PERIOD_BEHAVIOR_LINK, settings.periodBehaviorLink)
             putBoolean(SettingsKeys.ENV_AWARENESS_ENABLED, settings.envAwarenessEnabled)
             putBoolean(SettingsKeys.TTS_ENABLED, settings.ttsEnabled)
+            putBoolean(SettingsKeys.SHARE_WATERMARK, settings.shareWatermark)
         }.apply()
     }
 
@@ -537,6 +539,7 @@ class PetRepository private constructor(
             const val PERIOD_BEHAVIOR_LINK = "period_behavior_link"
             const val ENV_AWARENESS_ENABLED = "env_awareness_enabled"
             const val TTS_ENABLED = "tts_enabled"
+            const val SHARE_WATERMARK = "share_watermark"
         }
 
         /**

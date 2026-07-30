@@ -4,7 +4,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 enum class InteractionType {
-    PET, FEED, MOOD_SELECTED, PHOTO, OPEN_APP, CLOSE_APP, CHECKIN
+    PET, FEED, MOOD_SELECTED, PHOTO, OPEN_APP, CLOSE_APP, CHECKIN, SHARE
 }
 
 @Entity(tableName = "interaction_logs")
