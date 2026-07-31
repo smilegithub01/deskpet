@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.nativeCanvas
 import com.deskpet.app.data.model.OutfitCategory
 import com.deskpet.app.data.model.PetColor
 import com.deskpet.app.data.model.PetSpecies
