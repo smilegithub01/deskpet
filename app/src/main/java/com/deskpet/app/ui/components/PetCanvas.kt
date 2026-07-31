@@ -17,6 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -41,14 +42,15 @@ private const val BODY_H_RATIO = 0.58f        // body ellipse height / canvas he
 
 private const val EYE_Y_RATIO = 0.38f         // eye center Y / canvas height
 private const val EYE_SPACING_RATIO = 0.12f   // single eye offset from center X / canvas width
-private const val PUPIL_RATIO = 0.045f        // pupil radius / canvas width
-private const val PUPIL_HIGHLIGHT_RATIO = 0.015f // highlight radius / canvas width
-private const val PUPIL_HIGHLIGHT_OFFSET_X = 0.018f // highlight X offset from pupil center / canvas width
-private const val PUPIL_HIGHLIGHT_OFFSET_Y = 0.020f // highlight Y offset from pupil center / canvas width
+private const val PUPIL_RATIO = 0.058f        // pupil radius / canvas width (enlarged for watercolor design)
+private const val PUPIL_HIGHLIGHT_RATIO = 0.022f // highlight radius / canvas width (enlarged)
+private const val PUPIL_HIGHLIGHT_OFFSET_X = 0.020f // highlight X offset from pupil center / canvas width
+private const val PUPIL_HIGHLIGHT_OFFSET_Y = 0.022f // highlight Y offset from pupil center / canvas height
 
-private const val BLUSH_Y_RATIO = 0.46f       // blush center Y / canvas height
+private const val BLUSH_Y_RATIO = 0.47f       // blush center Y / canvas height
 private const val BLUSH_SPACING_RATIO = 0.14f  // blush offset from center X / canvas width
-private const val BLUSH_RADIUS_RATIO = 0.045f  // blush base radius / canvas width
+private const val BLUSH_RADIUS_RATIO = 0.050f  // blush base radius / canvas width (enlarged)
+private const val BLUSH_OVAL_W_FACTOR = 1.5f   // blush horizontal stretch for oval shape
 
 private const val NOSE_Y_RATIO = 0.49f        // nose Y / canvas height
 private const val NOSE_RADIUS_RATIO = 0.020f  // nose radius / canvas width
@@ -210,6 +212,13 @@ fun PetCanvas(
     ) {
         val anchors = PetAnchors(size.width, size.height)
 
+        // ---- Bottom shadow (watercolor ambient) ----
+        drawOval(
+            color = Color.Black.copy(alpha = 0.06f),
+            topLeft = Offset(anchors.bodyCx - anchors.bodyHalfW * 0.85f, anchors.bodyBottom - size.height * 0.01f),
+            size = Size(anchors.bodyHalfW * 1.7f, size.height * 0.03f)
+        )
+
         // ---- Ears (behind body) ----
         when (species) {
             PetSpecies.CAT -> drawCatEars(anchors, bodyColor, darkerColor)
@@ -218,21 +227,32 @@ fun PetCanvas(
             PetSpecies.HAMSTER -> drawHamsterEars(anchors, bodyColor, darkerColor)
         }
 
-        // ---- Body (one unified oval — design sheet principle) ----
+        // ---- Body watercolor halo (outer bleed) ----
         drawOval(
-            color = bodyColor,
+            color = bodyColor.copy(alpha = 0.15f),
+            topLeft = Offset(anchors.bodyLeft - size.width * 0.02f, anchors.bodyTop - size.height * 0.015f),
+            size = Size(anchors.bodyHalfW * 2f + size.width * 0.04f, anchors.bodyHalfH * 2f + size.height * 0.03f)
+        )
+
+        // ---- Body (radial gradient: lighter center → body color edge) ----
+        drawOval(
+            brush = Brush.radialGradient(
+                colors = listOf(bellyColor, bodyColor),
+                center = Offset(anchors.bodyCx, anchors.bodyCy - anchors.bodyHalfH * 0.2f),
+                radius = anchors.bodyHalfH * 1.1f
+            ),
             topLeft = Offset(anchors.bodyLeft, anchors.bodyTop),
             size = Size(anchors.bodyHalfW * 2f, anchors.bodyHalfH * 2f)
         )
 
-        // Belly highlight patch (lighter watercolor wash)
+        // Belly highlight patch (lighter watercolor wash, soft)
         drawOval(
-            color = bellyColor.copy(alpha = 0.55f),
+            color = bellyColor.copy(alpha = 0.35f),
             topLeft = Offset(anchors.bellyCx - anchors.bellyW / 2f, anchors.bellyCy - anchors.bellyH / 2f),
             size = Size(anchors.bellyW, anchors.bellyH)
         )
 
-        // ---- Blush marks (watercolor style, on cheeks) ----
+        // ---- Blush marks (watercolor oval, on cheeks) ----
         drawWatercolorBlush(anchors.leftBlushX, anchors.blushY, anchors.blushR, BlushColor)
         drawWatercolorBlush(anchors.rightBlushX, anchors.blushY, anchors.blushR, BlushColor)
 
@@ -243,19 +263,19 @@ fun PetCanvas(
                 EyeColor,
                 Offset(anchors.leftEyeX - blinkHalf, anchors.eyeY),
                 Offset(anchors.leftEyeX + blinkHalf, anchors.eyeY),
-                strokeWidth = 4f, cap = StrokeCap.Round
+                strokeWidth = anchors.pupilR * 0.5f, cap = StrokeCap.Round
             )
             drawLine(
                 EyeColor,
                 Offset(anchors.rightEyeX - blinkHalf, anchors.eyeY),
                 Offset(anchors.rightEyeX + blinkHalf, anchors.eyeY),
-                strokeWidth = 4f, cap = StrokeCap.Round
+                strokeWidth = anchors.pupilR * 0.5f, cap = StrokeCap.Round
             )
         } else {
-            // Full pupil (watercolor style — no white ring)
+            // Full pupil (watercolor style — no white ring, larger)
             drawCircle(EyeColor, radius = anchors.pupilR, center = Offset(anchors.leftEyeX, anchors.eyeY))
             drawCircle(EyeColor, radius = anchors.pupilR, center = Offset(anchors.rightEyeX, anchors.eyeY))
-            // Catchlight highlight (top-right of pupil)
+            // Catchlight highlight (top-right of pupil, larger)
             val hlR = size.width * PUPIL_HIGHLIGHT_RATIO
             drawCircle(
                 Color.White, radius = hlR,
@@ -264,6 +284,15 @@ fun PetCanvas(
             drawCircle(
                 Color.White, radius = hlR,
                 center = Offset(anchors.rightEyeX + size.width * PUPIL_HIGHLIGHT_OFFSET_X, anchors.eyeY - size.height * PUPIL_HIGHLIGHT_OFFSET_Y)
+            )
+            // Secondary tiny highlight (bottom-left, adds depth)
+            drawCircle(
+                Color.White.copy(alpha = 0.5f), radius = hlR * 0.4f,
+                center = Offset(anchors.leftEyeX - size.width * 0.012f, anchors.eyeY + size.height * 0.012f)
+            )
+            drawCircle(
+                Color.White.copy(alpha = 0.5f), radius = hlR * 0.4f,
+                center = Offset(anchors.rightEyeX - size.width * 0.012f, anchors.eyeY + size.height * 0.012f)
             )
         }
 
@@ -502,7 +531,7 @@ private fun DrawScope.drawHamsterSnout(a: PetAnchors, w: Float) {
 // PAWS
 // ============================================================
 private fun DrawScope.drawPaws(a: PetAnchors, pawColor: Color) {
-    val pawColorLight = pawColor.copy(alpha = 0.75f)
+    val pawColorLight = pawColor.copy(alpha = 0.85f)
     // Left paw
     drawOval(
         pawColorLight,
@@ -564,7 +593,8 @@ private fun DrawScope.drawHeart(cx: Float, cy: Float, r: Float, color: Color) {
 // ============================================================
 
 /**
- * Draw watercolor-style blush: 3 overlapping transparent ellipses for soft wash effect.
+ * Draw watercolor-style blush: 3 overlapping transparent horizontal ellipses for soft wash effect.
+ * Horizontal oval shape matches the watercolor design sheet.
  */
 private fun DrawScope.drawWatercolorBlush(
     centerX: Float,
@@ -572,22 +602,23 @@ private fun DrawScope.drawWatercolorBlush(
     baseRadius: Float,
     baseColor: Color
 ) {
+    val w = baseRadius * BLUSH_OVAL_W_FACTOR
     // Layer 1: large, faint wash
-    drawCircle(
-        baseColor.copy(alpha = 0.30f),
-        radius = baseRadius * 1.4f,
-        center = Offset(centerX - baseRadius * 0.1f, centerY - baseRadius * 0.1f)
+    drawOval(
+        color = baseColor.copy(alpha = 0.25f),
+        topLeft = Offset(centerX - w * 1.4f, centerY - baseRadius * 1.2f),
+        size = Size(w * 2.8f, baseRadius * 2.4f)
     )
     // Layer 2: medium opacity
-    drawCircle(
-        baseColor.copy(alpha = 0.45f),
-        radius = baseRadius,
-        center = Offset(centerX + baseRadius * 0.15f, centerY + baseRadius * 0.05f)
+    drawOval(
+        color = baseColor.copy(alpha = 0.35f),
+        topLeft = Offset(centerX - w, centerY - baseRadius * 0.85f),
+        size = Size(w * 2f, baseRadius * 1.7f)
     )
     // Layer 3: core, most opaque
-    drawCircle(
-        baseColor.copy(alpha = 0.60f),
-        radius = baseRadius * 0.55f,
-        center = Offset(centerX - baseRadius * 0.05f, centerY)
+    drawOval(
+        color = baseColor.copy(alpha = 0.50f),
+        topLeft = Offset(centerX - w * 0.6f, centerY - baseRadius * 0.5f),
+        size = Size(w * 1.2f, baseRadius * 1.0f)
     )
 }
