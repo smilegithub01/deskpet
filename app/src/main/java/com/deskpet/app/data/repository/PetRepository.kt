@@ -199,12 +199,15 @@ class PetRepository private constructor(
     // ----------------------------------------------------------- Companion (Co-Parenting)
 
     /** Active companion link, observed by UI. */
-    val activeCompanion: StateFlow<CompanionLink?> =
-        companionLinkDao.getActiveLink().stateIn(
-            scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO),
-            started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000),
-            initialValue = null
-        )
+    private val _activeCompanion = MutableStateFlow<CompanionLink?>(null)
+    val activeCompanion: StateFlow<CompanionLink?> = _activeCompanion.asStateFlow()
+
+    /** Collects the active-link flow from Room into [_activeCompanion]. */
+    private suspend fun observeActiveCompanion() {
+        companionLinkDao.getActiveLink().collect { link ->
+            _activeCompanion.value = link
+        }
+    }
 
     /**
      * Generates a 6-uppercase-letter pair code representing the current owner,
@@ -803,7 +806,14 @@ class PetRepository private constructor(
 
         fun getInstance(context: Context): PetRepository =
             INSTANCE ?: synchronized(this) {
-                INSTANCE ?: PetRepository(context, AppDatabase.getInstance(context)).also { INSTANCE = it }
+                INSTANCE ?: PetRepository(context, AppDatabase.getInstance(context)).also { repo ->
+                    INSTANCE = repo
+                    // Kick off the companion-link observer on a background thread so
+                    // activeCompanion stays in sync with the DB.
+                    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                        repo.observeActiveCompanion()
+                    }
+                }
             }
     }
 }
