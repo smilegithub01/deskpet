@@ -1,11 +1,12 @@
 package com.deskpet.app.ui.screens.dressup
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,9 +25,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ripple.rememberRipple
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material3.Icon
@@ -37,9 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -294,10 +291,11 @@ private fun OutfitCard(
     onTap: () -> Unit
 ) {
     val locked = petLevel < item.requiredLevel && !owned
-    // 点击缩放动画反馈
-    var isPressed by remember { mutableStateOf(false) }
-    val scale by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = if (isPressed) 0.92f else 1f,
+    // 点击缩放动画反馈：通过 interactionSource.collectIsPressedAsState 监听按压状态
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.94f else 1f,
         label = "cardScale"
     )
 
@@ -320,21 +318,10 @@ private fun OutfitCard(
                 shape = RoundedCornerShape(16.dp)
             )
             .clickable(
-                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                indication = androidx.compose.material.ripple.rememberRipple()
-            ) {
-                isPressed = true
-                onTap()
-            }
-            .pointerInput(Unit) {
-                androidx.compose.foundation.gestures.detectTapGestures(
-                    onPress = {
-                        isPressed = true
-                        tryAwaitRelease()
-                        isPressed = false
-                    }
-                )
-            }
+                interactionSource = interactionSource,
+                indication = rememberRipple(),
+                onClick = onTap
+            )
             .padding(12.dp)
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
