@@ -19,9 +19,13 @@ import com.deskpet.app.data.model.PetSettings
 import com.deskpet.app.data.model.RoomLayout
 import com.deskpet.app.data.model.toEntity
 import com.deskpet.app.data.model.toPet
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.runBlocking
 import java.text.SimpleDateFormat
@@ -810,7 +814,7 @@ class PetRepository private constructor(
                     INSTANCE = repo
                     // Kick off the companion-link observer on a background thread so
                     // activeCompanion stays in sync with the DB.
-                    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                    CoroutineScope(Dispatchers.IO).launch {
                         repo.observeActiveCompanion()
                     }
                 }
