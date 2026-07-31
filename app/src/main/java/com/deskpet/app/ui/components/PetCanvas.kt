@@ -278,7 +278,7 @@ private fun DrawScope.drawCat(w: Float, h: Float, body: Color, dark: Color) {
         cornerRadius = CornerRadius(w * 0.32f, w * 0.32f)
     )
     // Paws (darker color for visibility against body)
-    drawPaws(w, h, w * 0.18f, w * 0.82f, h * 0.12f, h * 0.90f, darkerColor)
+    drawPaws(w, h, w * 0.18f, w * 0.82f, h * 0.12f, h * 0.90f, dark)
 }
 
 private fun DrawScope.drawCatSnout(w: Float, h: Float) {
@@ -349,7 +349,7 @@ private fun DrawScope.drawDog(w: Float, h: Float, body: Color, dark: Color) {
         cornerRadius = CornerRadius(w * 0.30f, w * 0.30f)
     )
     // Paws (darker color for visibility against body)
-    drawPaws(w, h, w * 0.20f, w * 0.80f, h * 0.14f, h * 0.90f, darkerColor)
+    drawPaws(w, h, w * 0.20f, w * 0.80f, h * 0.14f, h * 0.90f, dark)
 }
 
 private fun DrawScope.drawDogSnout(w: Float, h: Float) {
@@ -391,7 +391,7 @@ private fun DrawScope.drawRabbit(w: Float, h: Float, body: Color, dark: Color) {
         cornerRadius = CornerRadius(w * 0.28f, w * 0.28f)
     )
     // Paws (darker color for visibility against body)
-    drawPaws(w, h, w * 0.22f, w * 0.78f, h * 0.20f, h * 0.90f, darkerColor)
+    drawPaws(w, h, w * 0.22f, w * 0.78f, h * 0.20f, h * 0.90f, dark)
 }
 
 private fun DrawScope.drawRabbitSnout(w: Float, h: Float) {
@@ -418,7 +418,7 @@ private fun DrawScope.drawHamster(w: Float, h: Float, body: Color, dark: Color) 
         size = Size(w * 0.36f, h * 0.30f)
     )
     // Paws (darker color for visibility against body)
-    drawPaws(w, h, w * 0.30f, w * 0.70f, h * 0.19f, h * 0.86f, darkerColor)
+    drawPaws(w, h, w * 0.30f, w * 0.70f, h * 0.19f, h * 0.86f, dark)
 }
 
 private fun DrawScope.drawHamsterSnout(w: Float, h: Float) {
