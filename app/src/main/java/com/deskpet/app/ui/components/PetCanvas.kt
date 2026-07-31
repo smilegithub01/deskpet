@@ -28,7 +28,6 @@ import com.deskpet.app.data.model.PetColor
 import com.deskpet.app.data.model.PetSpecies
 import com.deskpet.app.data.model.PetState
 import kotlinx.coroutines.delay
-import kotlin.random.Random
 
 // ============================================================
 // DESIGN TOKENS (from 2560x1440 design sheet, ratio-driven)
@@ -99,10 +98,6 @@ private val HeartColor = Color(0xFFFF6B9D)
 private val SnoutColor = Color(0xFFFF8FAB)
 private val WhiskerColor = Color(0x66555050)
 private val InnerEarColor = Color(0xCCFFB3C8)
-private val BellyPatchColor = Color(0xFFFFFFFF)
-
-// Seed for wobble effect
-private var wobbleSeed = Random(System.currentTimeMillis())
 
 // ============================================================
 // ANCHOR SYSTEM — derived from design ratios
