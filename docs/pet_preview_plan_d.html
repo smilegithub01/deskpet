@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Pet Preview - Plan D (Watercolor Flat + Unified Outfits)</title>
+<title>Pet Preview - Plan D</title>
 <style>
   body{margin:0;background:linear-gradient(180deg,#fbf5ef 0%,#f3e9de 100%);display:flex;flex-wrap:wrap;justify-content:center;gap:20px;padding:24px;min-height:100vh;font-family:'PingFang SC','Microsoft YaHei',sans-serif}
   .frame{display:flex;flex-direction:column;align-items:center;background:rgba(255,255,255,0.55);padding:16px 16px 12px;border-radius:14px;box-shadow:0 4px 16px rgba(180,150,120,0.12)}
@@ -11,6 +11,8 @@
   .sub{margin-top:2px;color:#b8987a;font-size:11px;letter-spacing:1px}
   h1{width:100%;text-align:center;color:#7a5a42;font-size:18px;letter-spacing:4px;font-weight:500;margin:0 0 8px}
   .legend{width:100%;text-align:center;color:#a0866a;font-size:12px;margin-bottom:8px;line-height:1.7}
+  #err{width:100%;color:#c0392b;background:#fdf0ef;padding:8px;border-radius:6px;font-size:12px;display:none}
+  #imgfallback{max-width:100%;height:auto;margin-top:8px;border-radius:8px}
 </style>
 </head>
 <body>
@@ -19,508 +21,401 @@
   目标：本体与装饰同为"水彩扁平插画"风格 —— 柔和渐变、半透明边缘、统一锚点定位<br>
   展示：4 物种 × 不同颜色 + 各自穿戴 2-3 件装饰（头饰/眼镜/项圈/服装/尾饰）
 </div>
+<div id="err"></div>
+<img id="imgfallback" src="pet_preview_plan_d.png" alt="Plan D Preview">
 <script>
-const W = 280, H = 280;
+try {
+  const W = 280, H = 280;
 
-function shade(hex,f){
-  let c=hex.replace('#','');
-  let r=parseInt(c.substr(0,2),16),g=parseInt(c.substr(2,2),16),b=parseInt(c.substr(4,2),16);
-  r=Math.min(255,Math.max(0,Math.round(r*f)));
-  g=Math.min(255,Math.max(0,Math.round(g*f)));
-  b=Math.min(255,Math.max(0,Math.round(b*f)));
-  return [r,g,b];
-}
-function rgba(arr,a){return `rgba(${arr[0]},${arr[1]},${arr[2]},${a})`;}
-
-// ============== 统一锚点系统（本体和装饰共用）==============
-function anchors(w,h){
-  const bodyCx=w*0.50, bodyCy=h*0.73, bodyRx=w*0.26, bodyRy=h*0.22;
-  const headCx=w*0.50, headCy=h*0.39, headR=w*0.235;
-  return {
-    w,h,
-    bodyCx, bodyCy, bodyRx, bodyRy,
-    bodyTop: bodyCy-bodyRy, bodyBottom: bodyCy+bodyRy,
-    bodyLeft: bodyCx-bodyRx, bodyRight: bodyCx+bodyRx,
-    headCx, headCy, headR,
-    eyeY: headCy + headR*0.14,
-    leftEyeX: headCx - headR*0.42,
-    rightEyeX: headCx + headR*0.42,
-    eyeW: headR*0.24, eyeH: headR*0.28,
-    blushY: headCy + headR*0.42,
-    leftBlushX: headCx - headR*0.58,
-    rightBlushX: headCx + headR*0.58,
-    blushR: headR*0.20,
-    noseY: headCy + headR*0.52,
-    noseR: headR*0.075,
-    mouthY: headCy + headR*0.66,
-    leftPawX: bodyCx - bodyRx*0.48,
-    rightPawX: bodyCx + bodyRx*0.48,
-    pawY: bodyBottom - bodyRy*0.10,
-    pawR: headR*0.13,
-    leftFootX: bodyCx - bodyRx*0.68,
-    rightFootX: bodyCx + bodyRx*0.68,
-    footY: bodyBottom,
-    footR: headR*0.15,
-    // ===== 装饰锚点（复用本体锚点，无硬编码）=====
-    headTopY: headCy - headR*1.02,   // 头饰顶部
-    collarY: bodyTop + bodyRy*0.15,  // 项圈：身体顶部稍下
-    clothingY: bodyCy + bodyRy*0.20  // 服装：身体中部
-  };
-}
-
-// ============== 水彩原语（本体用）==============
-function drawWatercolorBlob(ctx, cx, cy, rx, ry, main, hi, dk){
-  const maxR = Math.max(rx,ry);
-  // L1 柔光晕
-  let g1 = ctx.createRadialGradient(cx,cy,0,cx,cy,maxR*1.8);
-  g1.addColorStop(0, rgba(main,0.10));
-  g1.addColorStop(1, rgba(main,0));
-  ctx.fillStyle = g1;
-  ctx.beginPath(); ctx.ellipse(cx,cy,rx*1.7,ry*1.7,0,0,Math.PI*2); ctx.fill();
-  // L2 主体渐变（高光偏左上，暗部偏右下）
-  let g2 = ctx.createRadialGradient(cx-rx*0.25, cy-ry*0.3, 0, cx-rx*0.25, cy-ry*0.3, maxR*1.15);
-  g2.addColorStop(0, rgba(hi,0.95));
-  g2.addColorStop(0.55, rgba(main,0.95));
-  g2.addColorStop(0.85, rgba(dk,0.85));
-  g2.addColorStop(1, rgba(dk,0));
-  ctx.fillStyle = g2;
-  ctx.beginPath(); ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2); ctx.fill();
-  // L3 顶部高光
-  let g3 = ctx.createRadialGradient(cx-rx*0.3, cy-ry*0.45, 0, cx-rx*0.3, cy-ry*0.45, rx*0.6);
-  g3.addColorStop(0, rgba(hi,0.55));
-  g3.addColorStop(1, rgba(hi,0));
-  ctx.fillStyle = g3;
-  ctx.beginPath(); ctx.ellipse(cx-rx*0.3, cy-ry*0.45, rx*0.55, ry*0.45, 0, 0, Math.PI*2); ctx.fill();
-}
-
-function drawSoftOutline(ctx, cx, cy, rx, ry, color, width, alpha){
-  ctx.strokeStyle = rgba(color, alpha);
-  ctx.lineWidth = width;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2);
-  ctx.stroke();
-}
-
-// ============== 水彩原语（装饰用 —— 与本体同风格）==============
-// 关键：装饰不再用纯色 fill，改用渐变 + 柔边
-function drawWatercolorCircle(ctx, cx, cy, r, main, hi, dk){
-  drawWatercolorBlob(ctx, cx, cy, r, r, main, hi, dk);
-}
-function drawWatercolorLeaf(ctx, cx, cy, r, main, hi, dk, angle){
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate(angle);
-  let g = ctx.createLinearGradient(0, -r, 0, r);
-  g.addColorStop(0, rgba(hi, 0.95));
-  g.addColorStop(0.5, rgba(main, 0.92));
-  g.addColorStop(1, rgba(dk, 0.8));
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.moveTo(0, -r);
-  ctx.quadraticCurveTo(r*0.6, 0, 0, r);
-  ctx.quadraticCurveTo(-r*0.6, 0, 0, -r);
-  ctx.fill();
-  // 柔边晕染
-  ctx.strokeStyle = rgba(main, 0.15);
-  ctx.lineWidth = r*0.2;
-  ctx.stroke();
-  ctx.restore();
-}
-
-// ============== 物种耳朵 ==============
-function drawCatEars(ctx, a, base, dark, light, lighter){
-  // 两只三角耳，水彩填充
-  const earTopY = a.headCy - a.headR*0.95;
-  const earBaseY = a.headCy - a.headR*0.55;
-  const earW = a.headR*0.42;
-  // 左耳
-  drawEarTriangle(ctx, a.headCx - a.headR*0.55, earBaseY, a.headCx - a.headR*0.85, earTopY, a.headCx - a.headR*0.25, earBaseY + a.headR*0.05, base, lighter, dark);
-  // 右耳
-  drawEarTriangle(ctx, a.headCx + a.headR*0.55, earBaseY, a.headCx + a.headR*0.85, earTopY, a.headCx + a.headR*0.25, earBaseY + a.headR*0.05, base, lighter, dark);
-  // 内耳粉
-  ctx.fillStyle = rgba([255,190,206], 0.6);
-  ctx.beginPath();
-  ctx.moveTo(a.headCx - a.headR*0.65, earBaseY - a.headR*0.05);
-  ctx.lineTo(a.headCx - a.headR*0.78, earTopY + a.headR*0.15);
-  ctx.lineTo(a.headCx - a.headR*0.4, earBaseY);
-  ctx.closePath(); ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(a.headCx + a.headR*0.65, earBaseY - a.headR*0.05);
-  ctx.lineTo(a.headCx + a.headR*0.78, earTopY + a.headR*0.15);
-  ctx.lineTo(a.headCx + a.headR*0.4, earBaseY);
-  ctx.closePath(); ctx.fill();
-}
-function drawEarTriangle(ctx, x1, y1, x2, y2, x3, y3, main, hi, dk){
-  // 求中心点做渐变
-  const cx = (x1+x2+x3)/3, cy = (y1+y2+y3)/3;
-  const r = Math.max(Math.hypot(x1-cx,y1-cy), Math.hypot(x2-cx,y2-cy));
-  let g = ctx.createRadialGradient(cx - r*0.2, cy - r*0.2, 0, cx, cy, r*1.1);
-  g.addColorStop(0, rgba(hi, 0.95));
-  g.addColorStop(0.6, rgba(main, 0.92));
-  g.addColorStop(1, rgba(dk, 0.85));
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.lineTo(x3,y3); ctx.closePath();
-  ctx.fill();
-}
-
-function drawDogEars(ctx, a, base, dark, light, lighter){
-  // 垂耳：椭圆挂在头两侧
-  // 左耳
-  drawWatercolorBlob(ctx, a.headCx - a.headR*0.92, a.headCy + a.headR*0.15, a.headR*0.22, a.headR*0.42, base, lighter, dark);
-  // 右耳
-  drawWatercolorBlob(ctx, a.headCx + a.headR*0.92, a.headCy + a.headR*0.15, a.headR*0.22, a.headR*0.42, base, lighter, dark);
-}
-
-function drawRabbitEars(ctx, a, base, dark, light, lighter){
-  // 长椭圆立耳
-  // 左耳
-  drawWatercolorBlob(ctx, a.headCx - a.headR*0.32, a.headCy - a.headR*1.05, a.headR*0.15, a.headR*0.55, base, lighter, dark);
-  // 右耳
-  drawWatercolorBlob(ctx, a.headCx + a.headR*0.32, a.headCy - a.headR*1.05, a.headR*0.15, a.headR*0.55, base, lighter, dark);
-  // 内耳粉
-  ctx.fillStyle = rgba([255,190,206], 0.45);
-  ctx.beginPath();
-  ctx.ellipse(a.headCx - a.headR*0.32, a.headCy - a.headR*1.05, a.headR*0.07, a.headR*0.42, 0, 0, Math.PI*2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.ellipse(a.headCx + a.headR*0.32, a.headCy - a.headR*1.05, a.headR*0.07, a.headR*0.42, 0, 0, Math.PI*2);
-  ctx.fill();
-}
-
-function drawHamsterEars(ctx, a, base, dark, light, lighter){
-  // 小圆耳
-  drawWatercolorBlob(ctx, a.headCx - a.headR*0.75, a.headCy - a.headR*0.7, a.headR*0.16, a.headR*0.16, base, lighter, dark);
-  drawWatercolorBlob(ctx, a.headCx + a.headR*0.75, a.headCy - a.headR*0.7, a.headR*0.16, a.headR*0.16, base, lighter, dark);
-  ctx.fillStyle = rgba([255,190,206], 0.45);
-  ctx.beginPath();
-  ctx.arc(a.headCx - a.headR*0.75, a.headCy - a.headR*0.7, a.headR*0.07, 0, Math.PI*2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(a.headCx + a.headR*0.75, a.headCy - a.headR*0.7, a.headR*0.07, 0, Math.PI*2);
-  ctx.fill();
-}
-
-// ============== 五官 ==============
-function drawEyes(ctx, a){
-  const outline = [110,85,70];
-  // 眼眶（椭圆深棕）
-  ctx.fillStyle = rgba([45,36,32], 0.92);
-  ctx.beginPath(); ctx.ellipse(a.leftEyeX, a.eyeY, a.eyeW, a.eyeH, 0, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(a.rightEyeX, a.eyeY, a.eyeW, a.eyeH, 0, 0, Math.PI*2); ctx.fill();
-  // 高光（淡粉白）
-  ctx.fillStyle = rgba([254,245,234], 0.85);
-  ctx.beginPath(); ctx.ellipse(a.leftEyeX - a.eyeW*0.3, a.eyeY - a.eyeH*0.3, a.eyeW*0.32, a.eyeH*0.32, 0, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(a.rightEyeX - a.eyeW*0.3, a.eyeY - a.eyeH*0.3, a.eyeW*0.32, a.eyeH*0.32, 0, 0, Math.PI*2); ctx.fill();
-  // 副高光
-  ctx.fillStyle = rgba([240,238,232], 0.5);
-  ctx.beginPath(); ctx.arc(a.leftEyeX + a.eyeW*0.25, a.eyeY + a.eyeH*0.2, a.eyeW*0.12, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(a.rightEyeX + a.eyeW*0.25, a.eyeY + a.eyeH*0.2, a.eyeW*0.12, 0, Math.PI*2); ctx.fill();
-}
-
-function drawBlush(ctx, a){
-  const blush = [244,175,195];
-  // 腮红：径向渐变
-  let g1 = ctx.createRadialGradient(a.leftBlushX, a.blushY, 0, a.leftBlushX, a.blushY, a.blushR);
-  g1.addColorStop(0, rgba(blush, 0.55));
-  g1.addColorStop(1, rgba(blush, 0));
-  ctx.fillStyle = g1;
-  ctx.beginPath(); ctx.arc(a.leftBlushX, a.blushY, a.blushR, 0, Math.PI*2); ctx.fill();
-  let g2 = ctx.createRadialGradient(a.rightBlushX, a.blushY, 0, a.rightBlushX, a.blushY, a.blushR);
-  g2.addColorStop(0, rgba(blush, 0.55));
-  g2.addColorStop(1, rgba(blush, 0));
-  ctx.fillStyle = g2;
-  ctx.beginPath(); ctx.arc(a.rightBlushX, a.blushY, a.blushR, 0, Math.PI*2); ctx.fill();
-}
-
-function drawSnout(ctx, a, species){
-  // 鼻子
-  ctx.fillStyle = rgba([255,143,171], 0.9);
-  ctx.beginPath();
-  if(species==='cat'){
-    // 倒三角鼻
-    ctx.moveTo(a.headCx, a.noseY + a.noseR*0.5);
-    ctx.lineTo(a.headCx - a.noseR, a.noseY - a.noseR*0.3);
-    ctx.lineTo(a.headCx + a.noseR, a.noseY - a.noseR*0.3);
-    ctx.closePath();
-  } else {
-    ctx.ellipse(a.headCx, a.noseY, a.noseR, a.noseR*0.8, 0, 0, Math.PI*2);
+  function shade(hex,f){
+    let c=hex.replace('#','');
+    let r=parseInt(c.substr(0,2),16),g=parseInt(c.substr(2,2),16),b=parseInt(c.substr(4,2),16);
+    r=Math.min(255,Math.max(0,Math.round(r*f)));
+    g=Math.min(255,Math.max(0,Math.round(g*f)));
+    b=Math.min(255,Math.max(0,Math.round(b*f)));
+    return [r,g,b];
   }
-  ctx.fill();
-  // 嘴
-  ctx.strokeStyle = rgba([110,85,70], 0.5);
-  ctx.lineWidth = 1.2;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.moveTo(a.headCx, a.noseY + a.noseR*0.6);
-  ctx.lineTo(a.headCx, a.mouthY - a.headR*0.05);
-  ctx.moveTo(a.headCx, a.mouthY - a.headR*0.05);
-  ctx.quadraticCurveTo(a.headCx - a.headR*0.12, a.mouthY + a.headR*0.05, a.headCx - a.headR*0.18, a.mouthY - a.headR*0.02);
-  ctx.moveTo(a.headCx, a.mouthY - a.headR*0.05);
-  ctx.quadraticCurveTo(a.headCx + a.headR*0.12, a.mouthY + a.headR*0.05, a.headCx + a.headR*0.18, a.mouthY - a.headR*0.02);
-  ctx.stroke();
-}
+  function rgba(arr,a){return `rgba(${arr[0]},${arr[1]},${arr[2]},${a})`;}
 
-function drawPaws(ctx, a, light, mid){
-  // 前爪
-  drawWatercolorBlob(ctx, a.leftPawX, a.pawY, a.pawR, a.pawR, mid, light, mid);
-  drawWatercolorBlob(ctx, a.rightPawX, a.pawY, a.pawR, a.pawR, mid, light, mid);
-  // 脚
-  drawWatercolorBlob(ctx, a.leftFootX, a.footY, a.footR, a.footR, mid, light, mid);
-  drawWatercolorBlob(ctx, a.rightFootX, a.footY, a.footR, a.footR, mid, light, mid);
-  // 粉垫
-  ctx.fillStyle = rgba([255,190,206], 0.7);
-  ctx.beginPath(); ctx.arc(a.leftFootX, a.footY, a.footR*0.35, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(a.rightFootX, a.footY, a.footR*0.35, 0, Math.PI*2); ctx.fill();
-}
-
-// ============== 装饰（水彩化 —— 与本体同风格）==============
-const GOLD = [255, 215, 0];
-const GOLD_HI = [255, 235, 130];
-const GOLD_DK = [212, 160, 23];
-const PINK = [255, 107, 157];
-const PINK_HI = [255, 179, 206];
-const PINK_DK = [228, 77, 130];
-const RED = [232, 57, 43];
-const RED_HI = [255, 120, 100];
-const RED_DK = [180, 30, 20];
-const GREEN = [120, 200, 130];
-const GREEN_HI = [180, 230, 190];
-const GREEN_DK = [80, 160, 90];
-
-function drawBow(ctx, cx, cy, r){
-  // 蝴蝶结：两片水彩叶 + 中心结
-  drawWatercolorLeaf(ctx, cx - r*0.6, cy, r*0.7, PINK, PINK_HI, PINK_DK, -0.3);
-  drawWatercolorLeaf(ctx, cx + r*0.6, cy, r*0.7, PINK, PINK_HI, PINK_DK, 0.3);
-  // 中心
-  drawWatercolorCircle(ctx, cx, cy, r*0.22, PINK_DK, PINK, PINK_DK);
-}
-
-function drawCrown(ctx, cx, cy, r){
-  // 皇冠：水彩金色渐变
-  const pts = [
-    [cx - r, cy + r*0.4],
-    [cx - r, cy - r*0.1],
-    [cx - r*0.5, cy + r*0.15],
-    [cx, cy - r*0.5],
-    [cx + r*0.5, cy + r*0.15],
-    [cx + r, cy - r*0.1],
-    [cx + r, cy + r*0.4]
-  ];
-  let g = ctx.createLinearGradient(cx, cy - r*0.5, cx, cy + r*0.4);
-  g.addColorStop(0, rgba(GOLD_HI, 0.95));
-  g.addColorStop(0.5, rgba(GOLD, 0.92));
-  g.addColorStop(1, rgba(GOLD_DK, 0.85));
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.moveTo(pts[0][0], pts[0][1]);
-  for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0], pts[i][1]);
-  ctx.closePath();
-  ctx.fill();
-  // 宝石点
-  drawWatercolorCircle(ctx, cx, cy - r*0.2, r*0.1, PINK, PINK_HI, PINK_DK);
-  drawWatercolorCircle(ctx, cx - r*0.5, cy + r*0.05, r*0.07, [76,195,247], [180,225,255], [40,150,220]);
-  drawWatercolorCircle(ctx, cx + r*0.5, cy + r*0.05, r*0.07, [76,195,247], [180,225,255], [40,150,220]);
-}
-
-function drawFlower(ctx, cx, cy, r){
-  // 5 瓣花
-  for(let i=0;i<5;i++){
-    const angle = (i*72 - 90) * Math.PI / 180;
-    const px = cx + r*0.55*Math.cos(angle);
-    const py = cy + r*0.55*Math.sin(angle);
-    drawWatercolorCircle(ctx, px, py, r*0.4, PINK, PINK_HI, PINK_DK);
+  function anchors(w,h){
+    const bodyCx=w*0.50, bodyCy=h*0.73, bodyRx=w*0.26, bodyRy=h*0.22;
+    const headCx=w*0.50, headCy=h*0.39, headR=w*0.235;
+    const bodyTop = bodyCy-bodyRy, bodyBottom = bodyCy+bodyRy;
+    return {
+      w,h, bodyCx, bodyCy, bodyRx, bodyRy, bodyTop, bodyBottom,
+      bodyLeft: bodyCx-bodyRx, bodyRight: bodyCx+bodyRx,
+      headCx, headCy, headR,
+      eyeY: headCy + headR*0.14,
+      leftEyeX: headCx - headR*0.42,
+      rightEyeX: headCx + headR*0.42,
+      eyeW: headR*0.24, eyeH: headR*0.28,
+      blushY: headCy + headR*0.42,
+      leftBlushX: headCx - headR*0.58,
+      rightBlushX: headCx + headR*0.58,
+      blushR: headR*0.20,
+      noseY: headCy + headR*0.52,
+      noseR: headR*0.075,
+      mouthY: headCy + headR*0.66,
+      leftPawX: bodyCx - bodyRx*0.48,
+      rightPawX: bodyCx + bodyRx*0.48,
+      pawY: bodyBottom - bodyRy*0.10,
+      pawR: headR*0.13,
+      leftFootX: bodyCx - bodyRx*0.68,
+      rightFootX: bodyCx + bodyRx*0.68,
+      footY: bodyBottom,
+      footR: headR*0.15,
+      headTopY: headCy - headR*1.02,
+      collarY: bodyTop + bodyRy*0.15,
+      clothingY: bodyCy + bodyRy*0.20
+    };
   }
-  drawWatercolorCircle(ctx, cx, cy, r*0.3, GOLD, GOLD_HI, GOLD_DK);
-}
 
-function drawRoundGlasses(ctx, cx, cy, r){
-  // 圆框眼镜：柔边描边
-  ctx.strokeStyle = rgba([45,36,32], 0.85);
-  ctx.lineWidth = r*0.08;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.arc(cx - r*0.55, cy, r*0.5, 0, Math.PI*2);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(cx + r*0.55, cy, r*0.5, 0, Math.PI*2);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(cx - r*0.05, cy);
-  ctx.lineTo(cx + r*0.05, cy);
-  ctx.stroke();
-  // 镜片淡色
-  ctx.fillStyle = rgba([180,225,255], 0.18);
-  ctx.beginPath(); ctx.arc(cx - r*0.55, cy, r*0.45, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(cx + r*0.55, cy, r*0.45, 0, Math.PI*2); ctx.fill();
-}
+  function drawWatercolorBlob(ctx, cx, cy, rx, ry, main, hi, dk){
+    const maxR = Math.max(rx,ry);
+    let g1 = ctx.createRadialGradient(cx,cy,0,cx,cy,maxR*1.8);
+    g1.addColorStop(0, rgba(main,0.10));
+    g1.addColorStop(1, rgba(main,0));
+    ctx.fillStyle = g1;
+    ctx.beginPath(); ctx.ellipse(cx,cy,rx*1.7,ry*1.7,0,0,Math.PI*2); ctx.fill();
+    let g2 = ctx.createRadialGradient(cx-rx*0.25, cy-ry*0.3, 0, cx-rx*0.25, cy-ry*0.3, maxR*1.15);
+    g2.addColorStop(0, rgba(hi,0.95));
+    g2.addColorStop(0.55, rgba(main,0.95));
+    g2.addColorStop(0.85, rgba(dk,0.85));
+    g2.addColorStop(1, rgba(dk,0));
+    ctx.fillStyle = g2;
+    ctx.beginPath(); ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2); ctx.fill();
+    let g3 = ctx.createRadialGradient(cx-rx*0.3, cy-ry*0.45, 0, cx-rx*0.3, cy-ry*0.45, rx*0.6);
+    g3.addColorStop(0, rgba(hi,0.55));
+    g3.addColorStop(1, rgba(hi,0));
+    ctx.fillStyle = g3;
+    ctx.beginPath(); ctx.ellipse(cx-rx*0.3, cy-ry*0.45, rx*0.55, ry*0.45, 0, 0, Math.PI*2); ctx.fill();
+  }
 
-function drawBellCollar(ctx, cx, cy, r){
-  // 项圈带
-  ctx.strokeStyle = rgba(GOLD_DK, 0.85);
-  ctx.lineWidth = r*0.1;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.moveTo(cx - r, cy);
-  ctx.lineTo(cx + r, cy);
-  ctx.stroke();
-  // 铃铛
-  drawWatercolorCircle(ctx, cx, cy + r*0.25, r*0.3, GOLD, GOLD_HI, GOLD_DK);
-  // 铃铛缝
-  ctx.strokeStyle = rgba(GOLD_DK, 0.7);
-  ctx.lineWidth = r*0.04;
-  ctx.beginPath();
-  ctx.moveTo(cx - r*0.2, cy + r*0.25);
-  ctx.lineTo(cx + r*0.2, cy + r*0.25);
-  ctx.stroke();
-}
-
-function drawScarf(ctx, cx, cy, r){
-  // 围巾：水彩红色渐变
-  let g = ctx.createLinearGradient(cx, cy - r*0.3, cx, cy + r*0.5);
-  g.addColorStop(0, rgba(RED_HI, 0.92));
-  g.addColorStop(0.5, rgba(RED, 0.9));
-  g.addColorStop(1, rgba(RED_DK, 0.82));
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.moveTo(cx - r, cy - r*0.3);
-  ctx.lineTo(cx + r, cy - r*0.3);
-  ctx.lineTo(cx + r*0.8, cy + r*0.5);
-  ctx.lineTo(cx + r*0.3, cy + r*0.3);
-  ctx.lineTo(cx - r*0.3, cy + r*0.5);
-  ctx.lineTo(cx - r*0.8, cy + r*0.3);
-  ctx.closePath();
-  ctx.fill();
-  // 流苏纹理
-  ctx.strokeStyle = rgba(RED_DK, 0.4);
-  ctx.lineWidth = r*0.04;
-  for(let i=-2;i<=2;i++){
+  function drawSoftOutline(ctx, cx, cy, rx, ry, color, width, alpha){
+    ctx.strokeStyle = rgba(color, alpha);
+    ctx.lineWidth = width;
+    ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(cx + i*r*0.15, cy + r*0.3);
-    ctx.lineTo(cx + i*r*0.15, cy + r*0.48);
+    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2);
     ctx.stroke();
   }
-}
 
-function drawTailRibbon(ctx, cx, cy, r){
-  drawBow(ctx, cx, cy, r);
-}
-
-function drawStar(ctx, cx, cy, r){
-  let g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-  g.addColorStop(0, rgba(GOLD_HI, 0.95));
-  g.addColorStop(0.6, rgba(GOLD, 0.92));
-  g.addColorStop(1, rgba(GOLD_DK, 0.82));
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  for(let i=0;i<=10;i++){
-    const angle = (i*36 - 90) * Math.PI / 180;
-    const radius = i%2===0 ? r : r*0.4;
-    const x = cx + radius*Math.cos(angle);
-    const y = cy + radius*Math.sin(angle);
-    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  function drawWatercolorCircle(ctx, cx, cy, r, main, hi, dk){
+    drawWatercolorBlob(ctx, cx, cy, r, r, main, hi, dk);
   }
-  ctx.closePath();
-  ctx.fill();
-}
+  function drawWatercolorLeaf(ctx, cx, cy, r, main, hi, dk, angle){
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle);
+    let g = ctx.createLinearGradient(0, -r, 0, r);
+    g.addColorStop(0, rgba(hi, 0.95));
+    g.addColorStop(0.5, rgba(main, 0.92));
+    g.addColorStop(1, rgba(dk, 0.8));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(0, -r);
+    ctx.quadraticCurveTo(r*0.6, 0, 0, r);
+    ctx.quadraticCurveTo(-r*0.6, 0, 0, -r);
+    ctx.fill();
+    ctx.strokeStyle = rgba(main, 0.15);
+    ctx.lineWidth = r*0.2;
+    ctx.stroke();
+    ctx.restore();
+  }
 
-// ============== 主绘制 ==============
-function drawPet(species, color, outfits){
-  const canvas = document.createElement('canvas');
-  canvas.width = W; canvas.height = H;
-  const ctx = canvas.getContext('2d');
-  const a = anchors(W, H);
+  function drawEarTriangle(ctx, x1, y1, x2, y2, x3, y3, main, hi, dk){
+    const cx = (x1+x2+x3)/3, cy = (y1+y2+y3)/3;
+    const r = Math.max(Math.hypot(x1-cx,y1-cy), Math.hypot(x2-cx,y2-cy));
+    let g = ctx.createRadialGradient(cx - r*0.2, cy - r*0.2, 0, cx, cy, r*1.1);
+    g.addColorStop(0, rgba(hi, 0.95));
+    g.addColorStop(0.6, rgba(main, 0.92));
+    g.addColorStop(1, rgba(dk, 0.85));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.lineTo(x3,y3); ctx.closePath();
+    ctx.fill();
+  }
 
-  const base = shade(color, 1.0);
-  const dark = shade(color, 0.80);
-  const mid = base;
-  const light = shade(color, 1.12);
-  const lighter = shade(color, 1.24);
-  const outline = [110,85,70];
+  function drawCatEars(ctx, a, base, dark, light, lighter){
+    const earTopY = a.headCy - a.headR*0.95;
+    const earBaseY = a.headCy - a.headR*0.55;
+    drawEarTriangle(ctx, a.headCx - a.headR*0.55, earBaseY, a.headCx - a.headR*0.85, earTopY, a.headCx - a.headR*0.25, earBaseY + a.headR*0.05, base, lighter, dark);
+    drawEarTriangle(ctx, a.headCx + a.headR*0.55, earBaseY, a.headCx + a.headR*0.85, earTopY, a.headCx + a.headR*0.25, earBaseY + a.headR*0.05, base, lighter, dark);
+    ctx.fillStyle = rgba([255,190,206], 0.6);
+    ctx.beginPath();
+    ctx.moveTo(a.headCx - a.headR*0.65, earBaseY - a.headR*0.05);
+    ctx.lineTo(a.headCx - a.headR*0.78, earTopY + a.headR*0.15);
+    ctx.lineTo(a.headCx - a.headR*0.4, earBaseY);
+    ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(a.headCx + a.headR*0.65, earBaseY - a.headR*0.05);
+    ctx.lineTo(a.headCx + a.headR*0.78, earTopY + a.headR*0.15);
+    ctx.lineTo(a.headCx + a.headR*0.4, earBaseY);
+    ctx.closePath(); ctx.fill();
+  }
+  function drawDogEars(ctx, a, base, dark, light, lighter){
+    drawWatercolorBlob(ctx, a.headCx - a.headR*0.92, a.headCy + a.headR*0.15, a.headR*0.22, a.headR*0.42, base, lighter, dark);
+    drawWatercolorBlob(ctx, a.headCx + a.headR*0.92, a.headCy + a.headR*0.15, a.headR*0.22, a.headR*0.42, base, lighter, dark);
+  }
+  function drawRabbitEars(ctx, a, base, dark, light, lighter){
+    drawWatercolorBlob(ctx, a.headCx - a.headR*0.32, a.headCy - a.headR*1.05, a.headR*0.15, a.headR*0.55, base, lighter, dark);
+    drawWatercolorBlob(ctx, a.headCx + a.headR*0.32, a.headCy - a.headR*1.05, a.headR*0.15, a.headR*0.55, base, lighter, dark);
+    ctx.fillStyle = rgba([255,190,206], 0.45);
+    ctx.beginPath();
+    ctx.ellipse(a.headCx - a.headR*0.32, a.headCy - a.headR*1.05, a.headR*0.07, a.headR*0.42, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(a.headCx + a.headR*0.32, a.headCy - a.headR*1.05, a.headR*0.07, a.headR*0.42, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+  function drawHamsterEars(ctx, a, base, dark, light, lighter){
+    drawWatercolorBlob(ctx, a.headCx - a.headR*0.75, a.headCy - a.headR*0.7, a.headR*0.16, a.headR*0.16, base, lighter, dark);
+    drawWatercolorBlob(ctx, a.headCx + a.headR*0.75, a.headCy - a.headR*0.7, a.headR*0.16, a.headR*0.16, base, lighter, dark);
+    ctx.fillStyle = rgba([255,190,206], 0.45);
+    ctx.beginPath(); ctx.arc(a.headCx - a.headR*0.75, a.headCy - a.headR*0.7, a.headR*0.07, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(a.headCx + a.headR*0.75, a.headCy - a.headR*0.7, a.headR*0.07, 0, Math.PI*2); ctx.fill();
+  }
 
-  // 0. 地面阴影
-  let gsh = ctx.createRadialGradient(a.bodyCx, a.bodyBottom+4, 0, a.bodyCx, a.bodyBottom+4, a.bodyRx*1.5);
-  gsh.addColorStop(0, rgba(dark, 0.22));
-  gsh.addColorStop(1, rgba(dark, 0));
-  ctx.fillStyle = gsh;
-  ctx.beginPath();
-  ctx.ellipse(a.bodyCx, a.bodyBottom+2, a.bodyRx*1.25, a.bodyRy*0.3, 0, 0, Math.PI*2);
-  ctx.fill();
+  function drawEyes(ctx, a){
+    ctx.fillStyle = rgba([45,36,32], 0.92);
+    ctx.beginPath(); ctx.ellipse(a.leftEyeX, a.eyeY, a.eyeW, a.eyeH, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(a.rightEyeX, a.eyeY, a.eyeW, a.eyeH, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = rgba([254,245,234], 0.85);
+    ctx.beginPath(); ctx.ellipse(a.leftEyeX - a.eyeW*0.3, a.eyeY - a.eyeH*0.3, a.eyeW*0.32, a.eyeH*0.32, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(a.rightEyeX - a.eyeW*0.3, a.eyeY - a.eyeH*0.3, a.eyeW*0.32, a.eyeH*0.32, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = rgba([240,238,232], 0.5);
+    ctx.beginPath(); ctx.arc(a.leftEyeX + a.eyeW*0.25, a.eyeY + a.eyeH*0.2, a.eyeW*0.12, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(a.rightEyeX + a.eyeW*0.25, a.eyeY + a.eyeH*0.2, a.eyeW*0.12, 0, Math.PI*2); ctx.fill();
+  }
 
-  // 1. 身体（水彩）
-  drawWatercolorBlob(ctx, a.bodyCx, a.bodyCy, a.bodyRx, a.bodyRy, mid, lighter, dark);
-  drawSoftOutline(ctx, a.bodyCx, a.bodyCy, a.bodyRx*0.985, a.bodyRy*0.985, outline, 1.0, 0.35);
+  function drawBlush(ctx, a){
+    const blush = [244,175,195];
+    let g1 = ctx.createRadialGradient(a.leftBlushX, a.blushY, 0, a.leftBlushX, a.blushY, a.blushR);
+    g1.addColorStop(0, rgba(blush, 0.55));
+    g1.addColorStop(1, rgba(blush, 0));
+    ctx.fillStyle = g1;
+    ctx.beginPath(); ctx.arc(a.leftBlushX, a.blushY, a.blushR, 0, Math.PI*2); ctx.fill();
+    let g2 = ctx.createRadialGradient(a.rightBlushX, a.blushY, 0, a.rightBlushX, a.blushY, a.blushR);
+    g2.addColorStop(0, rgba(blush, 0.55));
+    g2.addColorStop(1, rgba(blush, 0));
+    ctx.fillStyle = g2;
+    ctx.beginPath(); ctx.arc(a.rightBlushX, a.blushY, a.blushR, 0, Math.PI*2); ctx.fill();
+  }
 
-  // 2. 耳朵（按物种，部分在头前部分在头后）
-  if(species==='dog') drawDogEars(ctx, a, base, dark, light, lighter);
-  if(species==='hamster') drawHamsterEars(ctx, a, base, dark, light, lighter);
-  if(species==='cat') drawCatEars(ctx, a, base, dark, light, lighter);
+  function drawSnout(ctx, a, species){
+    ctx.fillStyle = rgba([255,143,171], 0.9);
+    ctx.beginPath();
+    if(species==='cat'){
+      ctx.moveTo(a.headCx, a.noseY + a.noseR*0.5);
+      ctx.lineTo(a.headCx - a.noseR, a.noseY - a.noseR*0.3);
+      ctx.lineTo(a.headCx + a.noseR, a.noseY - a.noseR*0.3);
+      ctx.closePath();
+    } else {
+      ctx.ellipse(a.headCx, a.noseY, a.noseR, a.noseR*0.8, 0, 0, Math.PI*2);
+    }
+    ctx.fill();
+    ctx.strokeStyle = rgba([110,85,70], 0.5);
+    ctx.lineWidth = 1.2;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(a.headCx, a.noseY + a.noseR*0.6);
+    ctx.lineTo(a.headCx, a.mouthY - a.headR*0.05);
+    ctx.moveTo(a.headCx, a.mouthY - a.headR*0.05);
+    ctx.quadraticCurveTo(a.headCx - a.headR*0.12, a.mouthY + a.headR*0.05, a.headCx - a.headR*0.18, a.mouthY - a.headR*0.02);
+    ctx.moveTo(a.headCx, a.mouthY - a.headR*0.05);
+    ctx.quadraticCurveTo(a.headCx + a.headR*0.12, a.mouthY + a.headR*0.05, a.headCx + a.headR*0.18, a.mouthY - a.headR*0.02);
+    ctx.stroke();
+  }
 
-  // 3. 头（水彩）
-  drawWatercolorBlob(ctx, a.headCx, a.headCy, a.headR, a.headR, mid, lighter, dark);
-  drawSoftOutline(ctx, a.headCx, a.headCy, a.headR*0.985, a.headR*0.985, outline, 0.9, 0.35);
+  function drawPaws(ctx, a, light, mid){
+    drawWatercolorBlob(ctx, a.leftPawX, a.pawY, a.pawR, a.pawR, mid, light, mid);
+    drawWatercolorBlob(ctx, a.rightPawX, a.pawY, a.pawR, a.pawR, mid, light, mid);
+    drawWatercolorBlob(ctx, a.leftFootX, a.footY, a.footR, a.footR, mid, light, mid);
+    drawWatercolorBlob(ctx, a.rightFootX, a.footY, a.footR, a.footR, mid, light, mid);
+    ctx.fillStyle = rgba([255,190,206], 0.7);
+    ctx.beginPath(); ctx.arc(a.leftFootX, a.footY, a.footR*0.35, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(a.rightFootX, a.footY, a.footR*0.35, 0, Math.PI*2); ctx.fill();
+  }
 
-  // 4. 兔耳（头后）
-  if(species==='rabbit') drawRabbitEars(ctx, a, base, dark, light, lighter);
+  const GOLD = [255, 215, 0], GOLD_HI = [255, 235, 130], GOLD_DK = [212, 160, 23];
+  const PINK = [255, 107, 157], PINK_HI = [255, 179, 206], PINK_DK = [228, 77, 130];
+  const RED = [232, 57, 43], RED_HI = [255, 120, 100], RED_DK = [180, 30, 20];
 
-  // 5. 脚 + 爪
-  drawPaws(ctx, a, light, mid);
+  function drawBow(ctx, cx, cy, r){
+    drawWatercolorLeaf(ctx, cx - r*0.6, cy, r*0.7, PINK, PINK_HI, PINK_DK, -0.3);
+    drawWatercolorLeaf(ctx, cx + r*0.6, cy, r*0.7, PINK, PINK_HI, PINK_DK, 0.3);
+    drawWatercolorCircle(ctx, cx, cy, r*0.22, PINK_DK, PINK, PINK_DK);
+  }
+  function drawCrown(ctx, cx, cy, r){
+    const pts = [[cx-r,cy+r*0.4],[cx-r,cy-r*0.1],[cx-r*0.5,cy+r*0.15],[cx,cy-r*0.5],[cx+r*0.5,cy+r*0.15],[cx+r,cy-r*0.1],[cx+r,cy+r*0.4]];
+    let g = ctx.createLinearGradient(cx, cy - r*0.5, cx, cy + r*0.4);
+    g.addColorStop(0, rgba(GOLD_HI, 0.95));
+    g.addColorStop(0.5, rgba(GOLD, 0.92));
+    g.addColorStop(1, rgba(GOLD_DK, 0.85));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.closePath(); ctx.fill();
+    drawWatercolorCircle(ctx, cx, cy - r*0.2, r*0.1, PINK, PINK_HI, PINK_DK);
+    drawWatercolorCircle(ctx, cx - r*0.5, cy + r*0.05, r*0.07, [76,195,247], [180,225,255], [40,150,220]);
+    drawWatercolorCircle(ctx, cx + r*0.5, cy + r*0.05, r*0.07, [76,195,247], [180,225,255], [40,150,220]);
+  }
+  function drawFlower(ctx, cx, cy, r){
+    for(let i=0;i<5;i++){
+      const angle = (i*72 - 90) * Math.PI / 180;
+      const px = cx + r*0.55*Math.cos(angle);
+      const py = cy + r*0.55*Math.sin(angle);
+      drawWatercolorCircle(ctx, px, py, r*0.4, PINK, PINK_HI, PINK_DK);
+    }
+    drawWatercolorCircle(ctx, cx, cy, r*0.3, GOLD, GOLD_HI, GOLD_DK);
+  }
+  function drawRoundGlasses(ctx, cx, cy, r){
+    ctx.strokeStyle = rgba([45,36,32], 0.85);
+    ctx.lineWidth = r*0.08;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(cx - r*0.55, cy, r*0.5, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx + r*0.55, cy, r*0.5, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - r*0.05, cy); ctx.lineTo(cx + r*0.05, cy); ctx.stroke();
+    ctx.fillStyle = rgba([180,225,255], 0.18);
+    ctx.beginPath(); ctx.arc(cx - r*0.55, cy, r*0.45, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + r*0.55, cy, r*0.45, 0, Math.PI*2); ctx.fill();
+  }
+  function drawBellCollar(ctx, cx, cy, r){
+    ctx.strokeStyle = rgba(GOLD_DK, 0.85);
+    ctx.lineWidth = r*0.1;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(cx - r, cy); ctx.lineTo(cx + r, cy); ctx.stroke();
+    drawWatercolorCircle(ctx, cx, cy + r*0.25, r*0.3, GOLD, GOLD_HI, GOLD_DK);
+    ctx.strokeStyle = rgba(GOLD_DK, 0.7);
+    ctx.lineWidth = r*0.04;
+    ctx.beginPath(); ctx.moveTo(cx - r*0.2, cy + r*0.25); ctx.lineTo(cx + r*0.2, cy + r*0.25); ctx.stroke();
+  }
+  function drawScarf(ctx, cx, cy, r){
+    let g = ctx.createLinearGradient(cx, cy - r*0.3, cx, cy + r*0.5);
+    g.addColorStop(0, rgba(RED_HI, 0.92));
+    g.addColorStop(0.5, rgba(RED, 0.9));
+    g.addColorStop(1, rgba(RED_DK, 0.82));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(cx - r, cy - r*0.3);
+    ctx.lineTo(cx + r, cy - r*0.3);
+    ctx.lineTo(cx + r*0.8, cy + r*0.5);
+    ctx.lineTo(cx + r*0.3, cy + r*0.3);
+    ctx.lineTo(cx - r*0.3, cy + r*0.5);
+    ctx.lineTo(cx - r*0.8, cy + r*0.3);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = rgba(RED_DK, 0.4);
+    ctx.lineWidth = r*0.04;
+    for(let i=-2;i<=2;i++){
+      ctx.beginPath();
+      ctx.moveTo(cx + i*r*0.15, cy + r*0.3);
+      ctx.lineTo(cx + i*r*0.15, cy + r*0.48);
+      ctx.stroke();
+    }
+  }
+  function drawStar(ctx, cx, cy, r){
+    let g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    g.addColorStop(0, rgba(GOLD_HI, 0.95));
+    g.addColorStop(0.6, rgba(GOLD, 0.92));
+    g.addColorStop(1, rgba(GOLD_DK, 0.82));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    for(let i=0;i<=10;i++){
+      const angle = (i*36 - 90) * Math.PI / 180;
+      const radius = i%2===0 ? r : r*0.4;
+      const x = cx + radius*Math.cos(angle);
+      const y = cy + radius*Math.sin(angle);
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.closePath(); ctx.fill();
+  }
 
-  // 6. 腮红
-  drawBlush(ctx, a);
+  function drawPet(species, color, outfits){
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    const a = anchors(W, H);
 
-  // 7. 眼睛
-  drawEyes(ctx, a);
+    const base = shade(color, 1.0);
+    const dark = shade(color, 0.80);
+    const mid = base;
+    const light = shade(color, 1.12);
+    const lighter = shade(color, 1.24);
+    const outline = [110,85,70];
 
-  // 8. 鼻嘴
-  drawSnout(ctx, a, species);
+    let gsh = ctx.createRadialGradient(a.bodyCx, a.bodyBottom+4, 0, a.bodyCx, a.bodyBottom+4, a.bodyRx*1.5);
+    gsh.addColorStop(0, rgba(dark, 0.22));
+    gsh.addColorStop(1, rgba(dark, 0));
+    ctx.fillStyle = gsh;
+    ctx.beginPath();
+    ctx.ellipse(a.bodyCx, a.bodyBottom+2, a.bodyRx*1.25, a.bodyRy*0.3, 0, 0, Math.PI*2);
+    ctx.fill();
 
-  // 9. 装饰（用统一锚点，水彩风格）
-  outfits.forEach(o => {
-    const r = a.headR;
-    if(o==='head_bow') drawBow(ctx, a.headCx, a.headTopY - r*0.1, r*0.55);
-    if(o==='head_crown') drawCrown(ctx, a.headCx, a.headTopY - r*0.05, r*0.6);
-    if(o==='head_flower') drawFlower(ctx, a.headCx, a.headTopY - r*0.05, r*0.5);
-    if(o==='glasses_round') drawRoundGlasses(ctx, a.headCx, a.eyeY, r*0.55);
-    if(o==='collar_bell') drawBellCollar(ctx, a.headCx, a.collarY, r*0.6);
-    if(o==='cloth_scarf') drawScarf(ctx, a.headCx, a.clothingY, r*0.75);
-    if(o==='tail_star') drawStar(ctx, a.bodyRight + r*0.15, a.bodyBottom - r*0.25, r*0.4);
-    if(o==='tail_ribbon') drawTailRibbon(ctx, a.bodyRight + r*0.15, a.bodyBottom - r*0.25, r*0.4);
+    drawWatercolorBlob(ctx, a.bodyCx, a.bodyCy, a.bodyRx, a.bodyRy, mid, lighter, dark);
+    drawSoftOutline(ctx, a.bodyCx, a.bodyCy, a.bodyRx*0.985, a.bodyRy*0.985, outline, 1.0, 0.35);
+
+    if(species==='dog') drawDogEars(ctx, a, base, dark, light, lighter);
+    if(species==='hamster') drawHamsterEars(ctx, a, base, dark, light, lighter);
+    if(species==='cat') drawCatEars(ctx, a, base, dark, light, lighter);
+
+    drawWatercolorBlob(ctx, a.headCx, a.headCy, a.headR, a.headR, mid, lighter, dark);
+    drawSoftOutline(ctx, a.headCx, a.headCy, a.headR*0.985, a.headR*0.985, outline, 0.9, 0.35);
+
+    if(species==='rabbit') drawRabbitEars(ctx, a, base, dark, light, lighter);
+
+    drawPaws(ctx, a, light, mid);
+    drawBlush(ctx, a);
+    drawEyes(ctx, a);
+    drawSnout(ctx, a, species);
+
+    outfits.forEach(o => {
+      const r = a.headR;
+      if(o==='head_bow') drawBow(ctx, a.headCx, a.headTopY - r*0.1, r*0.55);
+      if(o==='head_crown') drawCrown(ctx, a.headCx, a.headTopY - r*0.05, r*0.6);
+      if(o==='head_flower') drawFlower(ctx, a.headCx, a.headTopY - r*0.05, r*0.5);
+      if(o==='glasses_round') drawRoundGlasses(ctx, a.headCx, a.eyeY, r*0.55);
+      if(o==='collar_bell') drawBellCollar(ctx, a.headCx, a.collarY, r*0.6);
+      if(o==='cloth_scarf') drawScarf(ctx, a.headCx, a.clothingY, r*0.75);
+      if(o==='tail_star') drawStar(ctx, a.bodyRight + r*0.15, a.bodyBottom - r*0.25, r*0.4);
+    });
+
+    return canvas;
+  }
+
+  const cases = [
+    {sp:'cat',     color:'#FF8FAB', outfits:['head_crown','glasses_round','collar_bell'], label:'猫咪 · 暖粉', sub:'皇冠 + 圆框眼镜 + 铃铛项圈'},
+    {sp:'dog',     color:'#FFD4A8', outfits:['cloth_scarf','head_bow'],                   label:'小狗 · 蜜桃', sub:'围巾 + 蝴蝶结'},
+    {sp:'rabbit',  color:'#A8D8FF', outfits:['head_flower','glasses_round','tail_star'],  label:'兔子 · 天蓝', sub:'花朵 + 圆框眼镜 + 星星尾饰'},
+    {sp:'hamster', color:'#B8F2D8', outfits:['head_bow','collar_bell','cloth_scarf'],     label:'仓鼠 · 薄荷', sub:'蝴蝶结 + 铃铛 + 围巾'}
+  ];
+
+  // 隐藏图片后备，显示 canvas 渲染结果
+  document.getElementById('imgfallback').style.display = 'none';
+
+  cases.forEach(c => {
+    const frame = document.createElement('div');
+    frame.className = 'frame';
+    const canvas = drawPet(c.sp, c.color, c.outfits);
+    frame.appendChild(canvas);
+    const lbl = document.createElement('div');
+    lbl.className = 'label';
+    lbl.textContent = c.label;
+    frame.appendChild(lbl);
+    const sub = document.createElement('div');
+    sub.className = 'sub';
+    sub.textContent = c.sub;
+    frame.appendChild(sub);
+    document.body.appendChild(frame);
   });
 
-  return canvas;
+  console.log('Plan D rendered ' + cases.length + ' pets');
+} catch(e) {
+  const err = document.getElementById('err');
+  err.style.display = 'block';
+  err.textContent = 'JS Error: ' + e.message + ' (line ' + e.line + ')';
+  console.error(e);
 }
-
-// ============== 渲染所有组合 ==============
-const cases = [
-  {sp:'cat',     color:'#FF8FAB', outfits:['head_crown','glasses_round','collar_bell'], label:'猫咪 · 暖粉', sub:'皇冠 + 圆框眼镜 + 铃铛项圈'},
-  {sp:'dog',     color:'#FFD4A8', outfits:['cloth_scarf','head_bow'],                   label:'小狗 · 蜜桃', sub:'围巾 + 蝴蝶结'},
-  {sp:'rabbit',  color:'#A8D8FF', outfits:['head_flower','glasses_round','tail_star'],  label:'兔子 · 天蓝', sub:'花朵 + 圆框眼镜 + 星星尾饰'},
-  {sp:'hamster', color:'#B8F2D8', outfits:['head_bow','collar_bell','cloth_scarf'],     label:'仓鼠 · 薄荷', sub:'蝴蝶结 + 铃铛 + 围巾'}
-];
-
-cases.forEach(c => {
-  const frame = document.createElement('div');
-  frame.className = 'frame';
-  const canvas = drawPet(c.sp, c.color, c.outfits);
-  frame.appendChild(canvas);
-  const lbl = document.createElement('div');
-  lbl.className = 'label';
-  lbl.textContent = c.label;
-  frame.appendChild(lbl);
-  const sub = document.createElement('div');
-  sub.className = 'sub';
-  sub.textContent = c.sub;
-  frame.appendChild(sub);
-  document.body.appendChild(frame);
-});
-
-// 单独展示装饰风格对照（左侧纯色旧版 vs 右侧水彩新版）
-const cmp = document.createElement('div');
-cmp.style.cssText = 'width:100%;text-align:center;color:#a0866a;font-size:12px;margin:16px 0 8px;line-height:1.7';
-cmp.innerHTML = '—— 装饰风格对照：上方为水彩化新版本（渐变+柔边），与本体协调；原 OutfitRenderer 为纯色 fill，与本体的水彩渐变风格断层 ——';
-document.body.appendChild(cmp);
 </script>
 </body>
 </html>
