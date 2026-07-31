@@ -24,12 +24,15 @@ import androidx.core.app.NotificationCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
+import com.deskpet.app.DeskPetApplication
 import com.deskpet.app.MainActivity
 import com.deskpet.app.R
 import com.deskpet.app.data.model.PetState
 import com.deskpet.app.ui.components.OverlayPetContent
+import com.deskpet.app.util.DialogueBank
 import com.deskpet.app.util.SoundHelper
 import com.deskpet.app.util.SoundType
+import com.deskpet.app.util.SpeechHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -173,6 +176,9 @@ class PetOverlayService : Service(), LifecycleOwner {
             return
         }
         SoundHelper.play(SoundType.PET)
+        val personalityTags = (applicationContext as DeskPetApplication)
+            .repository.petState.value.personalityTags
+        SpeechHelper.speak(DialogueBank.pet(personalityTags))
         _petState.value = PetState.HAPPY
         scope.launch {
             delay(3000)

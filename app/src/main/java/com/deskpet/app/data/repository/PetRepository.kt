@@ -66,6 +66,18 @@ class PetRepository private constructor(
     private val _roomLayout = MutableStateFlow<List<RoomLayout>>(emptyList())
     val roomLayout: StateFlow<List<RoomLayout>> = _roomLayout.asStateFlow()
 
+    /**
+     * One-shot signal fired when all 3 habit types are checked in on the same
+     * day. Consumed by [PetViewModel] to trigger EXCITED state + golden heart.
+     */
+    private val _habitCelebration = MutableStateFlow(false)
+    val habitCelebration: StateFlow<Boolean> = _habitCelebration.asStateFlow()
+
+    /** Clears the habit celebration signal (called after the celebration is consumed). */
+    fun clearHabitCelebration() {
+        _habitCelebration.value = false
+    }
+
     // ------------------------------------------------------------------ Pet
 
     fun getPet(): Pet = _petState.value
@@ -336,11 +348,25 @@ class PetRepository private constructor(
             "打卡成功！连续${newStreak}天~"
         }
 
+        // Check if all 3 habit types have been checked in today.
+        val allCompletedToday = HabitType.values().all { type ->
+            habitStreakDao.getByType(type.name)?.lastCheckDate == todayStr
+        }
+
+        if (allCompletedToday) {
+            _petState.update { it.copy(mood = (it.mood + 8).coerceIn(0, MAX_STAT)) }
+            persistPet()
+            _habitCelebration.value = true
+        }
+
+        val finalMsg = if (allCompletedToday) "$msg 今日全部打卡完成！小团子开心极了~" else msg
+
         return HabitCheckinResult(
             success = true,
-            message = msg,
+            message = finalMsg,
             newStreak = newStreak,
-            bonusDiamonds = bonusDiamonds
+            bonusDiamonds = bonusDiamonds,
+            allCompletedToday = allCompletedToday
         )
     }
 
@@ -669,5 +695,7 @@ data class HabitCheckinResult(
     val success: Boolean,
     val message: String,
     val newStreak: Int = 0,
-    val bonusDiamonds: Int = 0
+    val bonusDiamonds: Int = 0,
+    /** True when all 3 habit types have been checked in today — triggers EXCITED + golden heart. */
+    val allCompletedToday: Boolean = false
 )

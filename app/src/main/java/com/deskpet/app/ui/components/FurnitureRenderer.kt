@@ -3,10 +3,12 @@ package com.deskpet.app.ui.components
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import kotlin.random.Random
 
 /**
  * Renders furniture items as vector graphics on a room canvas.
@@ -22,7 +24,8 @@ object FurnitureRenderer {
             // Wallpaper
             "wall_pink" -> { drawWallpaper(Color(0xFFFFE0E0), Color(0xFFFFC0CB), w, h); true }
             "wall_mint" -> { drawWallpaper(Color(0xFFE0F5E0), Color(0xFFB0E0B0), w, h); true }
-            "wall_sky" -> { drawWallpaper(Color(0xFFE0ECF5), Color(0xFFB0CCE0), w, h); true }
+            "wall_star" -> { drawStarWallpaper(w, h); true }
+            "wall_rainbow" -> { drawRainbowWallpaper(w, h); true }
             // Floor
             "floor_wood" -> { drawFloor(Color(0xFFD2B48C), Color(0xFFC19A6B), w, h); true }
             "floor_tile" -> { drawFloor(Color(0xFFF0F0F0), Color(0xFFD0D0D0), w, h); true }
@@ -71,6 +74,87 @@ object FurnitureRenderer {
             row++
             y += spacing
         }
+    }
+
+    private fun DrawScope.drawStarWallpaper(w: Float, h: Float) {
+        val wallH = h * 0.6f
+        // Background gradient: deep blue to purple
+        drawRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(Color(0xFF1A1A3E), Color(0xFF4A2C6E)),
+                startY = 0f,
+                endY = wallH
+            ),
+            topLeft = Offset(0f, 0f),
+            size = Size(w, wallH)
+        )
+        // Stars with fixed seed for stable layout
+        val random = Random(42)
+        val starCount = 20 + random.nextInt(11)
+        repeat(starCount) {
+            val x = random.nextFloat() * w
+            val y = random.nextFloat() * wallH
+            val radius = w * (0.02f + random.nextFloat() * 0.03f)
+            val color = if (random.nextFloat() < 0.7f) Color.White else Color(0xFFFFF9C4)
+            drawCircle(color, radius = radius, center = Offset(x, y))
+        }
+        // Crescent moon
+        val moonCx = w * 0.8f
+        val moonCy = wallH * 0.25f
+        val moonR = w * 0.06f
+        drawArc(
+            color = Color(0xFFFFD700),
+            startAngle = 30f,
+            sweepAngle = 120f,
+            useCenter = false,
+            topLeft = Offset(moonCx - moonR, moonCy - moonR),
+            size = Size(moonR * 2, moonR * 2),
+            style = Stroke(width = moonR * 0.3f)
+        )
+    }
+
+    private fun DrawScope.drawRainbowWallpaper(w: Float, h: Float) {
+        val wallH = h * 0.6f
+        // Background: light pink
+        drawRect(Color(0xFFFFF0F5), topLeft = Offset(0f, 0f), size = Size(w, wallH))
+        // Rainbow: 7 concentric arcs, radius from large to small
+        val center = Offset(w * 0.5f, h * 0.6f)
+        val maxRadius = w * 0.3f
+        val bandWidth = maxRadius / 7f
+        val colors = listOf(
+            Color(0xFFE8392B), // red
+            Color(0xFFFF8C00), // orange
+            Color(0xFFFFD700), // yellow
+            Color(0xFF4CAF50), // green
+            Color(0xFF2196F3), // blue
+            Color(0xFF3F51B5), // indigo
+            Color(0xFF9C27B0)  // violet
+        )
+        colors.forEachIndexed { i, color ->
+            val r = maxRadius - i * bandWidth
+            drawArc(
+                color = color,
+                startAngle = 180f,
+                sweepAngle = 180f,
+                useCenter = false,
+                topLeft = Offset(center.x - r, center.y - r),
+                size = Size(r * 2, r * 2),
+                style = Stroke(width = bandWidth)
+            )
+        }
+        // Clouds at the rainbow base
+        val cloudColor = Color.White
+        val cloudY = h * 0.58f
+        // Left cloud
+        val leftCx = w * 0.2f
+        drawCircle(cloudColor, w * 0.04f, Offset(leftCx, cloudY))
+        drawCircle(cloudColor, w * 0.05f, Offset(leftCx + w * 0.04f, cloudY - w * 0.01f))
+        drawCircle(cloudColor, w * 0.035f, Offset(leftCx + w * 0.08f, cloudY))
+        // Right cloud
+        val rightCx = w * 0.76f
+        drawCircle(cloudColor, w * 0.035f, Offset(rightCx, cloudY))
+        drawCircle(cloudColor, w * 0.05f, Offset(rightCx + w * 0.04f, cloudY - w * 0.01f))
+        drawCircle(cloudColor, w * 0.04f, Offset(rightCx + w * 0.08f, cloudY))
     }
 
     // --- Floor ---

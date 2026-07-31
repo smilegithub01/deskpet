@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.deskpet.app.DeskPetApplication
+import com.deskpet.app.data.model.Achievement
 import com.deskpet.app.data.model.MoodLevel
 import com.deskpet.app.data.model.Pet
 import com.deskpet.app.data.model.PetState
@@ -26,6 +27,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import com.deskpet.app.data.model.InteractionLog
 import com.deskpet.app.data.model.InteractionType
+import com.deskpet.app.service.AchievementEngine
 import com.deskpet.app.service.EnvApiService
 import com.deskpet.app.service.PetMemoryEngine
 import com.deskpet.app.util.LunarCalendarHelper
@@ -65,6 +67,10 @@ class PetViewModel(
         repository
     )
     private val envApiService = EnvApiService(getApplication<DeskPetApplication>().database)
+    private val achievementEngine = AchievementEngine(
+        getApplication<DeskPetApplication>().database,
+        repository
+    )
 
     private val _dailyQuote = MutableStateFlow<String?>(null)
     val dailyQuote: StateFlow<String?> = _dailyQuote
@@ -93,9 +99,27 @@ class PetViewModel(
             // Show quote or festival message as speech bubble (only if no other bubble is showing)
             val envMessage = _festivalMessage.value ?: _dailyQuote.value
             if (envMessage != null) {
-                speak(envMessage)
+                speak(DialogueBank.greeting(repository.getPet().personalityTags))
                 delay(4000)
                 _speechBubble.value = null
+            }
+        }
+        // Listen for habit celebration signal (all 3 habits checked in today)
+        viewModelScope.launch {
+            repository.habitCelebration.collect { celebrate ->
+                if (celebrate) {
+                    _petState.value = PetState.EXCITED
+                    _showGoldenHeart.value = true
+                    _showHearts.value = true
+                    SoundHelper.play(SoundType.CHECKIN)
+                    speak("主人今天全部打卡完成啦！好开心~")
+                    delay(4000)
+                    _petState.value = PetState.IDLE
+                    _showGoldenHeart.value = false
+                    _showHearts.value = false
+                    _speechBubble.value = null
+                    repository.clearHabitCelebration()
+                }
             }
         }
     }
@@ -127,11 +151,51 @@ class PetViewModel(
     private val _speechBubble = MutableStateFlow<String?>(null)
     val speechBubble: StateFlow<String?> = _speechBubble.asStateFlow()
 
+    /** Newly unlocked achievements — drives the celebration popup on Home. */
+    private val _newlyUnlockedAchievements = MutableStateFlow<List<Achievement>>(emptyList())
+    val newlyUnlockedAchievements: StateFlow<List<Achievement>> = _newlyUnlockedAchievements
+
+    /** Golden heart overlay shown briefly when all 3 habits are checked in today. */
+    private val _showGoldenHeart = MutableStateFlow(false)
+    val showGoldenHeart: StateFlow<Boolean> = _showGoldenHeart
+
     /** Shows a speech bubble and speaks it via TTS if enabled. */
     private fun speak(text: String) {
         _speechBubble.value = text
         if (repository.getSettings().ttsEnabled) {
             SpeechHelper.speak(text)
+        }
+    }
+
+    /**
+     * Checks achievements after interactions. On new unlocks, plays the
+     * achievement fanfare and surfaces them via [newlyUnlockedAchievements]
+     * so the Home screen can show a celebration popup.
+     */
+    private fun checkAchievementsAfterInteraction() {
+        viewModelScope.launch {
+            val result = achievementEngine.checkAll()
+            if (result.newAchievements.isNotEmpty()) {
+                SoundHelper.play(SoundType.ACHIEVEMENT)
+                _newlyUnlockedAchievements.value = result.newAchievements
+            }
+        }
+    }
+
+    /** Clears the celebration popup state (called after the popup is dismissed). */
+    fun onAchievementsCelebrated() {
+        _newlyUnlockedAchievements.value = emptyList()
+    }
+
+    /** Updates the transient pet state, triggering contextual dialogue for mood-driven states. */
+    private fun transitionPetState(state: PetState) {
+        _petState.value = state
+        val tags = repository.getPet().personalityTags
+        when (state) {
+            PetState.SLEEPY -> speak(DialogueBank.sleepy(tags))
+            PetState.HUNGRY -> speak(DialogueBank.hungry(tags))
+            PetState.PLAYING -> speak(DialogueBank.playing(tags))
+            else -> {}
         }
     }
 
@@ -153,7 +217,7 @@ class PetViewModel(
         }
         _petState.value = PetState.HAPPY
         _showHearts.value = true
-        speak("好舒服呀～")
+        speak(DialogueBank.pet(repository.getPet().personalityTags))
         viewModelScope.launch {
             delay(2500)
             _petState.value = PetState.IDLE
@@ -163,6 +227,7 @@ class PetViewModel(
             delay(2000)
             _speechBubble.value = null
         }
+        checkAchievementsAfterInteraction()
     }
 
     /** Tapping the pet directly on Home also counts as petting. */
@@ -191,7 +256,7 @@ class PetViewModel(
                 detail = food.name
             ))
         }
-        speak("真好吃～")
+        speak(DialogueBank.feed(repository.getPet().personalityTags))
         viewModelScope.launch {
             delay(2000)
             _petState.value = PetState.IDLE
@@ -200,6 +265,7 @@ class PetViewModel(
             delay(1800)
             _speechBubble.value = null
         }
+        checkAchievementsAfterInteraction()
     }
 
     /** Mood selector: nudges the pet's mood value based on the chosen mood. */
@@ -218,7 +284,7 @@ class PetViewModel(
                 detail = mood.name
             ))
         }
-        _petState.value = if (delta > 0) PetState.HAPPY else PetState.SLEEPY
+        transitionPetState(if (delta > 0) PetState.HAPPY else PetState.SLEEPY)
         viewModelScope.launch {
             delay(2000)
             _petState.value = PetState.IDLE
@@ -259,6 +325,7 @@ class PetViewModel(
             }
             delay(2000)
             _toast.value = null
+            checkAchievementsAfterInteraction()
         }
     }
 

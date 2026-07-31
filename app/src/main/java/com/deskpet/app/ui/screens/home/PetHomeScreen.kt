@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Fastfood
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.Checkroom
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -53,10 +54,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.deskpet.app.data.model.Achievement
 import com.deskpet.app.data.model.MoodLevel
 import com.deskpet.app.data.model.OutfitCategory
 import com.deskpet.app.data.model.PetState
@@ -90,6 +94,8 @@ fun PetHomeScreen(
     val showHearts by viewModel.showHearts.collectAsStateWithLifecycle()
     val speechBubble by viewModel.speechBubble.collectAsStateWithLifecycle()
     val flash by viewModel.flash.collectAsStateWithLifecycle()
+    val newlyUnlockedAchievements by viewModel.newlyUnlockedAchievements.collectAsStateWithLifecycle()
+    val showGoldenHeart by viewModel.showGoldenHeart.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -125,15 +131,39 @@ fun PetHomeScreen(
             val stageOutfits = remember(pet) {
                 pet.equippedOutfitIds(DeskPetApplication.get().repository.getOutfitItems())
             }
-            PetStage(
-                petColor = pet.color,
-                petSpecies = pet.species,
-                petState = petState,
-                speechBubble = speechBubble,
-                showHearts = showHearts,
-                outfits = stageOutfits,
-                onClick = { viewModel.onPetClicked() }
-            )
+            Box(contentAlignment = Alignment.TopCenter) {
+                PetStage(
+                    petColor = pet.color,
+                    petSpecies = pet.species,
+                    petState = petState,
+                    speechBubble = speechBubble,
+                    showHearts = showHearts,
+                    outfits = stageOutfits,
+                    onClick = { viewModel.onPetClicked() }
+                )
+                // Golden heart overlay when all habits are checked in today.
+                AnimatedVisibility(
+                    visible = showGoldenHeart,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    val pulse by animateFloatAsState(
+                        targetValue = if (showGoldenHeart) 1.2f else 1f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
+                        ),
+                        label = "goldenPulse"
+                    )
+                    Text(
+                        text = "💛",
+                        fontSize = 40.sp,
+                        modifier = Modifier
+                            .graphicsLayer(scaleX = pulse, scaleY = pulse)
+                            .padding(top = 4.dp)
+                    )
+                }
+            }
 
             Spacer(Modifier.height(16.dp))
 
@@ -183,6 +213,14 @@ fun PetHomeScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             Box(Modifier.fillMaxSize().background(Color.White))
+        }
+
+        // Achievement celebration popup.
+        if (newlyUnlockedAchievements.isNotEmpty()) {
+            AchievementCelebrationDialog(
+                achievements = newlyUnlockedAchievements,
+                onDismiss = viewModel::onAchievementsCelebrated
+            )
         }
     }
 
@@ -604,4 +642,76 @@ private fun moodDescription(state: PetState): String = when (state) {
     PetState.HIDDEN -> "躲起来啦"
     PetState.PAUSED -> "休息中"
     PetState.IDLE -> "乖巧地等着你"
+}
+
+/**
+ * Celebration popup shown when one or more achievements are newly unlocked.
+ *
+ * Shows the achievement emoji, title, description and diamond reward, with a
+ * single "太棒了" dismiss button. The achievement fanfare is played by
+ * [PetViewModel.checkAchievementsAfterInteraction] when the unlock is detected.
+ */
+@Composable
+private fun AchievementCelebrationDialog(
+    achievements: List<Achievement>,
+    onDismiss: () -> Unit
+) {
+    val current = achievements.first()
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .clip(RoundedCornerShape(24.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "🎉 成就解锁",
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = current.emoji,
+                fontSize = 56.sp
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = current.title,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = current.description,
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "奖励 💎 x${current.rewardDiamonds}",
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.tertiary,
+                fontWeight = FontWeight.SemiBold
+            )
+            if (achievements.size > 1) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "还有 ${achievements.size - 1} 个新成就",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(Modifier.height(20.dp))
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("太棒了！")
+            }
+        }
+    }
 }

@@ -75,9 +75,40 @@ object OutfitRenderer {
             "collar_bell" -> { drawBellCollar(cx, cy, r); true }
             "collar_ribbon" -> { drawRibbonCollar(cx, cy, r); true }
             "cloth_scarf" -> { drawScarf(cx, cy, r); true }
+            "cloth_sweater" -> { drawSweater(cx, cy, r); true }
+            "cloth_dress" -> { drawDress(cx, cy, r); true }
+            "cloth_cape" -> { drawCape(cx, cy, r); true }
+            "cloth_suit" -> { drawSuit(cx, cy, r); true }
+            "cloth_kimono" -> { drawKimono(cx, cy, r); true }
+            "cloth_swimsuit" -> { drawSwimsuit(cx, cy, r); true }
+            "cloth_pajama" -> { drawPajama(cx, cy, r); true }
             "tail_ribbon" -> { drawTailRibbon(cx, cy, r); true }
             "tail_star" -> { drawStar(cx, cy, r); true }
             "acc_balloon" -> { drawBalloon(cx, cy, r); true }
+            "glasses_3d" -> { draw3DGlasses(cx, cy, r); true }
+            "glasses_star" -> { drawStarGlasses(cx, cy, r); true }
+            "glasses_monocle" -> { drawMonocle(cx, cy, r); true }
+            "glasses_party" -> { drawPartyGlasses(cx, cy, r); true }
+            "glasses_neon" -> { drawNeonGlasses(cx, cy, r); true }
+            "collar_bow" -> { drawBowCollar(cx, cy, r); true }
+            "collar_pearl" -> { drawPearlCollar(cx, cy, r); true }
+            "collar_gold" -> { drawGoldChain(cx, cy, r); true }
+            "collar_bone" -> { drawBoneCollar(cx, cy, r); true }
+            "collar_crystal" -> { drawCrystalCollar(cx, cy, r); true }
+            "collar_flower" -> { drawFlowerCollar(cx, cy, r); true }
+            "tail_flower" -> { drawFlower(cx, cy, r); true }
+            "tail_balloon" -> { drawBalloon(cx, cy, r); true }
+            "tail_butterfly" -> { drawButterflyTail(cx, cy, r); true }
+            "tail_rainbow" -> { drawRainbowTail(cx, cy, r); true }
+            "tail_cloud" -> { drawCloudTail(cx, cy, r); true }
+            "tail_heart" -> { drawHeartTail(cx, cy, r); true }
+            "acc_lollipop" -> { drawLollipop(cx, cy, r); true }
+            "acc_umbrella" -> { drawUmbrella(cx, cy, r); true }
+            "acc_wand" -> { drawWand(cx, cy, r); true }
+            "acc_book" -> { drawBook(cx, cy, r); true }
+            "acc_camera" -> { drawCamera(cx, cy, r); true }
+            "acc_gift" -> { drawGift(cx, cy, r); true }
+            "acc_star" -> { drawStarWand(cx, cy, r); true }
             else -> false
         }
         return rendered
@@ -384,6 +415,219 @@ object OutfitRenderer {
         drawLine(RedDk, Offset(cx - r * 0.5f, cy - r * 0.2f), Offset(cx + r * 0.5f, cy - r * 0.2f), r * 0.04f)
     }
 
+    private fun DrawScope.drawSweater(cx: Float, cy: Float, r: Float) {
+        // 椭圆覆盖身体
+        drawWatercolorBlob(cx, cy, r * 0.95f, r * 0.8f, RedColor, RedHi, RedDk)
+        // 圆弧领口（U形开口）
+        drawArc(
+            color = RedDk,
+            startAngle = 0f,
+            sweepAngle = 180f,
+            useCenter = false,
+            topLeft = Offset(cx - r * 0.25f, cy - r * 0.45f),
+            size = Size(r * 0.5f, r * 0.3f),
+            style = Stroke(width = r * 0.06f)
+        )
+    }
+
+    private fun DrawScope.drawDress(cx: Float, cy: Float, r: Float) {
+        val topY = cy - r * 0.5f
+        val bottomY = cy + r * 0.5f
+        val tipY = cy + r * 0.7f
+        val topHalf = r * 0.4f
+        val bottomHalf = r * 0.9f
+        val teeth = 6
+        val teethWidth = (bottomHalf * 2) / teeth
+        // 梯形 + 锯齿下摆
+        val path = Path().apply {
+            moveTo(cx - topHalf, topY)
+            lineTo(cx + topHalf, topY)
+            lineTo(cx + bottomHalf, bottomY)
+            // 锯齿下摆（从右向左，三角形锯齿）
+            for (i in 0 until teeth) {
+                val tipX = cx + bottomHalf - (i + 0.5f) * teethWidth
+                val nextBaseX = cx + bottomHalf - (i + 1f) * teethWidth
+                lineTo(tipX, tipY)
+                lineTo(nextBaseX, bottomY)
+            }
+            close()
+        }
+        val g = Brush.linearGradient(
+            colors = listOf(PinkHi, PinkAccent, PinkDk),
+            start = Offset(cx, topY),
+            end = Offset(cx, tipY)
+        )
+        drawPath(path, g)
+    }
+
+    private fun DrawScope.drawCape(cx: Float, cy: Float, r: Float) {
+        val topY = cy - r * 0.5f
+        val shoulderHalf = r * 0.5f
+        // 半圆弧形 + 波浪底边
+        val path = Path().apply {
+            moveTo(cx - shoulderHalf, topY)
+            // 左侧弧形向下
+            cubicTo(
+                cx - r * 1.0f, cy - r * 0.1f,
+                cx - r * 0.95f, cy + r * 0.4f,
+                cx - r * 0.85f, cy + r * 0.5f
+            )
+            // 波浪底边（cubicTo画波浪）
+            cubicTo(
+                cx - r * 0.5f, cy + r * 0.85f,
+                cx - r * 0.2f, cy + r * 0.55f,
+                cx, cy + r * 0.85f
+            )
+            cubicTo(
+                cx + r * 0.2f, cy + r * 0.55f,
+                cx + r * 0.5f, cy + r * 0.85f,
+                cx + r * 0.85f, cy + r * 0.5f
+            )
+            // 右侧弧形向上
+            cubicTo(
+                cx + r * 0.95f, cy + r * 0.4f,
+                cx + r * 1.0f, cy - r * 0.1f,
+                cx + shoulderHalf, topY
+            )
+            // 顶部领口（往下凹的弧）
+            cubicTo(
+                cx + r * 0.2f, topY + r * 0.1f,
+                cx - r * 0.2f, topY + r * 0.1f,
+                cx - shoulderHalf, topY
+            )
+            close()
+        }
+        val g = Brush.linearGradient(
+            colors = listOf(RedHi, RedColor, RedDk),
+            start = Offset(cx, topY),
+            end = Offset(cx, cy + r * 0.85f)
+        )
+        drawPath(path, g)
+    }
+
+    private fun DrawScope.drawSuit(cx: Float, cy: Float, r: Float) {
+        val suitHi = Color(0xFF4A4036)
+        val suitDk = Color(0xFF1A1310)
+        // 矩形身体
+        val bodyPath = Path().apply {
+            moveTo(cx - r * 0.8f, cy - r * 0.5f)
+            lineTo(cx + r * 0.8f, cy - r * 0.5f)
+            lineTo(cx + r * 0.8f, cy + r * 0.7f)
+            lineTo(cx - r * 0.8f, cy + r * 0.7f)
+            close()
+        }
+        val g = Brush.linearGradient(
+            colors = listOf(suitHi, DarkAccent, suitDk),
+            start = Offset(cx, cy - r * 0.5f),
+            end = Offset(cx, cy + r * 0.7f)
+        )
+        drawPath(bodyPath, g)
+        // V领衬衫（三角形）
+        val vPath = Path().apply {
+            moveTo(cx - r * 0.25f, cy - r * 0.5f)
+            lineTo(cx + r * 0.25f, cy - r * 0.5f)
+            lineTo(cx, cy + r * 0.2f)
+            close()
+        }
+        drawPath(vPath, Color.White)
+        // 领带
+        val tiePath = Path().apply {
+            moveTo(cx - r * 0.08f, cy - r * 0.05f)
+            lineTo(cx + r * 0.08f, cy - r * 0.05f)
+            lineTo(cx + r * 0.15f, cy + r * 0.5f)
+            lineTo(cx, cy + r * 0.6f)
+            lineTo(cx - r * 0.15f, cy + r * 0.5f)
+            close()
+        }
+        drawPath(tiePath, Brush.linearGradient(
+            colors = listOf(RedHi, RedColor, RedDk),
+            start = Offset(cx, cy - r * 0.05f),
+            end = Offset(cx, cy + r * 0.6f)
+        ))
+    }
+
+    private fun DrawScope.drawKimono(cx: Float, cy: Float, r: Float) {
+        val topY = cy - r * 0.5f
+        val bottomY = cy + r * 0.7f
+        // 梯形身体
+        val bodyPath = Path().apply {
+            moveTo(cx - r * 0.5f, topY)
+            lineTo(cx + r * 0.5f, topY)
+            lineTo(cx + r * 0.95f, bottomY)
+            lineTo(cx - r * 0.95f, bottomY)
+            close()
+        }
+        val g = Brush.linearGradient(
+            colors = listOf(PinkHi, PinkAccent, PinkDk),
+            start = Offset(cx, topY),
+            end = Offset(cx, bottomY)
+        )
+        drawPath(bodyPath, g)
+        // 交叉领 - 左
+        val leftCollar = Path().apply {
+            moveTo(cx - r * 0.5f, topY)
+            lineTo(cx, cy - r * 0.05f)
+            lineTo(cx - r * 0.05f, cy - r * 0.15f)
+            lineTo(cx - r * 0.55f, topY + r * 0.2f)
+            close()
+        }
+        drawPath(leftCollar, Color.White)
+        // 交叉领 - 右
+        val rightCollar = Path().apply {
+            moveTo(cx + r * 0.5f, topY)
+            lineTo(cx, cy - r * 0.05f)
+            lineTo(cx + r * 0.05f, cy - r * 0.15f)
+            lineTo(cx + r * 0.55f, topY + r * 0.2f)
+            close()
+        }
+        drawPath(rightCollar, Color(0xFFF0F0F0))
+        // 腰带（矩形）
+        drawRoundRect(
+            brush = Brush.linearGradient(
+                colors = listOf(GoldHi, GoldColor, GoldDk),
+                start = Offset(cx, cy + r * 0.1f),
+                end = Offset(cx, cy + r * 0.25f)
+            ),
+            topLeft = Offset(cx - r * 0.9f, cy + r * 0.1f),
+            size = Size(r * 1.8f, r * 0.15f),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(r * 0.05f, r * 0.05f)
+        )
+    }
+
+    private fun DrawScope.drawSwimsuit(cx: Float, cy: Float, r: Float) {
+        // 小椭圆主体
+        drawWatercolorBlob(cx, cy + r * 0.1f, r * 0.55f, r * 0.65f, BlueColor, BlueHi, BlueDk)
+        // 两条肩带
+        drawLine(
+            BlueDk,
+            Offset(cx - r * 0.4f, cy - r * 0.5f),
+            Offset(cx - r * 0.2f, cy + r * 0.1f),
+            r * 0.06f
+        )
+        drawLine(
+            BlueDk,
+            Offset(cx + r * 0.4f, cy - r * 0.5f),
+            Offset(cx + r * 0.2f, cy + r * 0.1f),
+            r * 0.06f
+        )
+    }
+
+    private fun DrawScope.drawPajama(cx: Float, cy: Float, r: Float) {
+        // 椭圆主体（浅蓝睡衣）
+        drawWatercolorBlob(cx, cy, r * 0.95f, r * 0.85f, BlueColor, BlueHi, BlueDk)
+        // 多条横纹
+        val stripeCount = 4
+        for (i in 0 until stripeCount) {
+            val y = cy - r * 0.4f + i * r * 0.25f
+            drawLine(
+                BlueDk,
+                Offset(cx - r * 0.85f, y),
+                Offset(cx + r * 0.85f, y),
+                r * 0.04f
+            )
+        }
+    }
+
     private fun DrawScope.drawTailRibbon(cx: Float, cy: Float, r: Float) {
         drawBow(cx, cy, r)
     }
@@ -418,5 +662,310 @@ object OutfitRenderer {
             size = Size(r * 1.4f, r * 1.6f)
         )
         drawLine(PinkDk, Offset(cx, cy + r * 0.6f), Offset(cx, cy + r * 1.5f), r * 0.04f)
+    }
+
+    // ============================================================
+    // GLASSES
+    // ============================================================
+    private fun DrawScope.draw3DGlasses(cx: Float, cy: Float, r: Float) {
+        val cr = androidx.compose.ui.geometry.CornerRadius(r * 0.12f, r * 0.12f)
+        drawRoundRect(
+            color = RedColor,
+            topLeft = Offset(cx - r * 0.95f, cy - r * 0.3f),
+            size = Size(r * 0.9f, r * 0.6f),
+            cornerRadius = cr
+        )
+        drawRoundRect(
+            color = BlueColor,
+            topLeft = Offset(cx + r * 0.05f, cy - r * 0.3f),
+            size = Size(r * 0.9f, r * 0.6f),
+            cornerRadius = cr
+        )
+        drawLine(DarkAccent, Offset(cx - r * 0.05f, cy), Offset(cx + r * 0.05f, cy), r * 0.08f)
+    }
+
+    private fun DrawScope.drawStarGlasses(cx: Float, cy: Float, r: Float) {
+        drawStar(cx - r * 0.55f, cy, r * 0.5f)
+        drawStar(cx + r * 0.55f, cy, r * 0.5f)
+        drawLine(DarkAccent, Offset(cx - r * 0.05f, cy), Offset(cx + r * 0.05f, cy), r * 0.06f)
+    }
+
+    private fun DrawScope.drawMonocle(cx: Float, cy: Float, r: Float) {
+        drawCircle(GoldColor, r * 0.6f, Offset(cx, cy), style = Stroke(width = r * 0.1f))
+        drawLine(
+            GoldDk,
+            Offset(cx + r * 0.42f, cy + r * 0.42f),
+            Offset(cx + r * 1.1f, cy + r * 1.1f),
+            r * 0.05f
+        )
+    }
+
+    private fun DrawScope.drawPartyGlasses(cx: Float, cy: Float, r: Float) {
+        drawCircle(DarkAccent, r * 0.5f, Offset(cx - r * 0.55f, cy), style = Stroke(width = r * 0.08f))
+        drawCircle(DarkAccent, r * 0.5f, Offset(cx + r * 0.55f, cy), style = Stroke(width = r * 0.08f))
+        drawLine(DarkAccent, Offset(cx - r * 0.05f, cy), Offset(cx + r * 0.05f, cy), r * 0.06f)
+        val ribbonColors = listOf(RedColor, GoldColor, BlueColor, PinkAccent)
+        var x = cx - r * 0.7f
+        ribbonColors.forEach { c ->
+            val tri = Path().apply {
+                moveTo(x, cy - r * 0.75f)
+                lineTo(x + r * 0.2f, cy - r * 0.75f)
+                lineTo(x + r * 0.1f, cy - r * 0.35f)
+                close()
+            }
+            drawPath(tri, c)
+            x += r * 0.22f
+        }
+    }
+
+    private fun DrawScope.drawNeonGlasses(cx: Float, cy: Float, r: Float) {
+        val g = Brush.radialGradient(
+            colors = listOf(Color(0xFF00FF00), Color(0xFFFF00FF)),
+            center = Offset(cx, cy),
+            radius = r
+        )
+        val cr = androidx.compose.ui.geometry.CornerRadius(r * 0.15f, r * 0.15f)
+        drawRoundRect(
+            brush = g,
+            topLeft = Offset(cx - r, cy - r * 0.3f),
+            size = Size(r * 2, r * 0.6f),
+            cornerRadius = cr
+        )
+    }
+
+    // ============================================================
+    // COLLAR
+    // ============================================================
+    private fun DrawScope.drawBowCollar(cx: Float, cy: Float, r: Float) {
+        drawLine(PinkDk, Offset(cx - r, cy), Offset(cx + r, cy), r * 0.08f)
+        drawBow(cx, cy, r * 0.5f)
+    }
+
+    private fun DrawScope.drawPearlCollar(cx: Float, cy: Float, r: Float) {
+        val n = 9
+        val step = (r * 2) / (n - 1)
+        for (i in 0 until n) {
+            val px = cx - r + i * step
+            drawWatercolorCircle(px, cy, r * 0.11f, Color.White, Color(0xFFFFF5F5), Color(0xFFE0E0E0))
+        }
+    }
+
+    private fun DrawScope.drawGoldChain(cx: Float, cy: Float, r: Float) {
+        drawLine(GoldColor, Offset(cx - r, cy), Offset(cx + r, cy), r * 0.06f)
+        drawWatercolorCircle(cx, cy + r * 0.3f, r * 0.25f, GoldColor, GoldHi, GoldDk)
+    }
+
+    private fun DrawScope.drawBoneCollar(cx: Float, cy: Float, r: Float) {
+        drawLine(DarkAccent, Offset(cx - r, cy), Offset(cx + r, cy), r * 0.06f)
+        val bx = cx
+        val by = cy + r * 0.6f
+        drawLine(DarkAccent, Offset(cx, cy), Offset(bx, by - r * 0.3f), r * 0.03f)
+        val boneColor = Color(0xFFFFF5E0)
+        drawCircle(boneColor, r * 0.13f, Offset(bx - r * 0.3f, by - r * 0.12f))
+        drawCircle(boneColor, r * 0.13f, Offset(bx - r * 0.3f, by + r * 0.12f))
+        drawCircle(boneColor, r * 0.13f, Offset(bx + r * 0.3f, by - r * 0.12f))
+        drawCircle(boneColor, r * 0.13f, Offset(bx + r * 0.3f, by + r * 0.12f))
+        drawRect(
+            color = boneColor,
+            topLeft = Offset(bx - r * 0.28f, by - r * 0.07f),
+            size = Size(r * 0.56f, r * 0.14f)
+        )
+    }
+
+    private fun DrawScope.drawCrystalCollar(cx: Float, cy: Float, r: Float) {
+        drawLine(DarkAccent, Offset(cx - r, cy), Offset(cx + r, cy), r * 0.06f)
+        val bx = cx
+        val by = cy + r * 0.6f
+        drawLine(DarkAccent, Offset(cx, cy), Offset(bx, by - r * 0.3f), r * 0.03f)
+        val diamond = Path().apply {
+            moveTo(bx, by - r * 0.3f)
+            lineTo(bx + r * 0.25f, by)
+            lineTo(bx, by + r * 0.3f)
+            lineTo(bx - r * 0.25f, by)
+            close()
+        }
+        val g = Brush.linearGradient(
+            colors = listOf(BlueHi, BlueColor, BlueDk),
+            start = Offset(bx, by - r * 0.3f),
+            end = Offset(bx, by + r * 0.3f)
+        )
+        drawPath(diamond, g)
+    }
+
+    private fun DrawScope.drawFlowerCollar(cx: Float, cy: Float, r: Float) {
+        drawLine(PinkAccent, Offset(cx - r, cy), Offset(cx + r, cy), r * 0.06f)
+        drawFlower(cx, cy + r * 0.2f, r * 0.4f)
+    }
+
+    // ============================================================
+    // TAIL
+    // ============================================================
+    private fun DrawScope.drawButterflyTail(cx: Float, cy: Float, r: Float) {
+        drawWatercolorLeaf(cx - r * 0.5f, cy, r * 0.6f, PinkAccent, PinkHi, PinkDk, -0.4f)
+        drawWatercolorLeaf(cx + r * 0.5f, cy, r * 0.6f, PinkAccent, PinkHi, PinkDk, 0.4f)
+        drawWatercolorCircle(cx, cy, r * 0.18f, DarkAccent, Color(0xFF4A4036), DarkAccent)
+    }
+
+    private fun DrawScope.drawRainbowTail(cx: Float, cy: Float, r: Float) {
+        val colors = listOf(
+            Color(0xFFFF0000), Color(0xFFFF7F00), Color(0xFFFFFF00),
+            Color(0xFF00FF00), Color(0xFF0000FF), Color(0xFF4B0082), Color(0xFF9400D3)
+        )
+        var radius = r
+        val sw = r * 0.14f
+        colors.forEach { c ->
+            drawArc(
+                color = c,
+                startAngle = 180f,
+                sweepAngle = 180f,
+                useCenter = false,
+                topLeft = Offset(cx - radius, cy - radius),
+                size = Size(radius * 2, radius * 2),
+                style = Stroke(width = sw)
+            )
+            radius -= sw
+        }
+    }
+
+    private fun DrawScope.drawCloudTail(cx: Float, cy: Float, r: Float) {
+        val mainColor = Color.White
+        val hiColor = Color(0xFFFFF5F5)
+        val dkColor = Color(0xFFE0E0E0)
+        drawWatercolorCircle(cx - r * 0.5f, cy, r * 0.5f, mainColor, hiColor, dkColor)
+        drawWatercolorCircle(cx + r * 0.5f, cy, r * 0.5f, mainColor, hiColor, dkColor)
+        drawWatercolorCircle(cx, cy - r * 0.2f, r * 0.6f, mainColor, hiColor, dkColor)
+    }
+
+    private fun DrawScope.drawHeartTail(cx: Float, cy: Float, r: Float) {
+        val heart = Path().apply {
+            moveTo(cx, cy + r * 0.5f)
+            cubicTo(cx - r * 0.8f, cy - r * 0.1f, cx - r * 0.5f, cy - r * 0.7f, cx, cy - r * 0.2f)
+            cubicTo(cx + r * 0.5f, cy - r * 0.7f, cx + r * 0.8f, cy - r * 0.1f, cx, cy + r * 0.5f)
+            close()
+        }
+        val g = Brush.radialGradient(
+            colors = listOf(PinkHi, PinkAccent, PinkDk),
+            center = Offset(cx, cy),
+            radius = r
+        )
+        drawPath(heart, g)
+    }
+
+    // ============================================================
+    // ACCESSORY
+    // ============================================================
+    private fun DrawScope.drawLollipop(cx: Float, cy: Float, r: Float) {
+        drawWatercolorCircle(cx, cy - r * 0.3f, r * 0.5f, PinkAccent, PinkHi, PinkDk)
+        drawArc(
+            color = Color.White,
+            startAngle = 0f,
+            sweepAngle = 270f,
+            useCenter = false,
+            topLeft = Offset(cx - r * 0.4f, cy - r * 0.7f),
+            size = Size(r * 0.8f, r * 0.8f),
+            style = Stroke(width = r * 0.06f)
+        )
+        drawArc(
+            color = PinkDk,
+            startAngle = 0f,
+            sweepAngle = 270f,
+            useCenter = false,
+            topLeft = Offset(cx - r * 0.25f, cy - r * 0.55f),
+            size = Size(r * 0.5f, r * 0.5f),
+            style = Stroke(width = r * 0.06f)
+        )
+        drawLine(DarkAccent, Offset(cx, cy + r * 0.2f), Offset(cx, cy + r), r * 0.06f)
+    }
+
+    private fun DrawScope.drawUmbrella(cx: Float, cy: Float, r: Float) {
+        val colors = listOf(RedColor, GoldColor, BlueColor, PinkAccent)
+        val seg = 180f / colors.size
+        colors.forEachIndexed { i, c ->
+            drawArc(
+                color = c,
+                startAngle = 180f + i * seg,
+                sweepAngle = seg,
+                useCenter = true,
+                topLeft = Offset(cx - r, cy - r),
+                size = Size(r * 2, r * 2)
+            )
+        }
+        drawLine(DarkAccent, Offset(cx, cy), Offset(cx, cy + r * 0.8f), r * 0.06f)
+        drawArc(
+            color = DarkAccent,
+            startAngle = 180f,
+            sweepAngle = 90f,
+            useCenter = false,
+            topLeft = Offset(cx - r * 0.15f, cy + r * 0.8f),
+            size = Size(r * 0.3f, r * 0.3f),
+            style = Stroke(width = r * 0.06f)
+        )
+    }
+
+    private fun DrawScope.drawWand(cx: Float, cy: Float, r: Float) {
+        drawWatercolorCircle(cx, cy - r * 0.3f, r * 0.7f, GoldHi, Color(0xFFFFF5B0), GoldColor)
+        drawStar(cx, cy - r * 0.3f, r * 0.5f)
+        drawLine(DarkAccent, Offset(cx, cy + r * 0.2f), Offset(cx, cy + r), r * 0.06f)
+    }
+
+    private fun DrawScope.drawBook(cx: Float, cy: Float, r: Float) {
+        val cr = androidx.compose.ui.geometry.CornerRadius(r * 0.08f, r * 0.08f)
+        val g = Brush.linearGradient(
+            colors = listOf(BlueHi, BlueColor, BlueDk),
+            start = Offset(cx, cy - r),
+            end = Offset(cx, cy + r)
+        )
+        drawRoundRect(
+            brush = g,
+            topLeft = Offset(cx - r * 0.7f, cy - r * 0.9f),
+            size = Size(r * 1.4f, r * 1.8f),
+            cornerRadius = cr
+        )
+        drawLine(
+            DarkAccent,
+            Offset(cx - r * 0.7f, cy - r * 0.9f),
+            Offset(cx - r * 0.7f, cy + r * 0.9f),
+            r * 0.06f
+        )
+        drawStar(cx + r * 0.1f, cy - r * 0.4f, r * 0.18f)
+        drawStar(cx + r * 0.1f, cy, r * 0.15f)
+        drawStar(cx + r * 0.1f, cy + r * 0.4f, r * 0.15f)
+    }
+
+    private fun DrawScope.drawCamera(cx: Float, cy: Float, r: Float) {
+        val cr = androidx.compose.ui.geometry.CornerRadius(r * 0.15f, r * 0.15f)
+        drawRoundRect(
+            color = DarkAccent,
+            topLeft = Offset(cx - r, cy - r * 0.5f),
+            size = Size(r * 2, r * 1.2f),
+            cornerRadius = cr
+        )
+        drawCircle(Color(0xFF4A4036), r * 0.35f, Offset(cx, cy + r * 0.1f))
+        drawCircle(DarkAccent, r * 0.3f, Offset(cx, cy + r * 0.1f), style = Stroke(width = r * 0.08f))
+        drawCircle(Color(0xFF888888), r * 0.1f, Offset(cx - r * 0.08f, cy + r * 0.02f))
+        drawCircle(GoldHi, r * 0.08f, Offset(cx + r * 0.7f, cy - r * 0.3f))
+    }
+
+    private fun DrawScope.drawGift(cx: Float, cy: Float, r: Float) {
+        val cr = androidx.compose.ui.geometry.CornerRadius(r * 0.08f, r * 0.08f)
+        val g = Brush.linearGradient(
+            colors = listOf(RedHi, RedColor, RedDk),
+            start = Offset(cx, cy - r),
+            end = Offset(cx, cy + r)
+        )
+        drawRoundRect(
+            brush = g,
+            topLeft = Offset(cx - r * 0.8f, cy - r * 0.8f),
+            size = Size(r * 1.6f, r * 1.6f),
+            cornerRadius = cr
+        )
+        drawLine(GoldColor, Offset(cx, cy - r * 0.8f), Offset(cx, cy + r * 0.8f), r * 0.1f)
+        drawLine(GoldColor, Offset(cx - r * 0.8f, cy), Offset(cx + r * 0.8f, cy), r * 0.1f)
+        drawBow(cx, cy - r * 0.8f, r * 0.4f)
+    }
+
+    private fun DrawScope.drawStarWand(cx: Float, cy: Float, r: Float) {
+        drawStar(cx, cy - r * 0.3f, r * 0.5f)
+        drawLine(DarkAccent, Offset(cx, cy + r * 0.2f), Offset(cx, cy + r), r * 0.06f)
     }
 }

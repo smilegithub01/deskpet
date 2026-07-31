@@ -6,6 +6,7 @@ import com.deskpet.app.data.repository.PetRepository
 import com.deskpet.app.data.model.InteractionLog
 import com.deskpet.app.data.model.InteractionType
 import com.deskpet.app.service.PetMemoryEngine
+import com.deskpet.app.service.TravelEngine
 import com.deskpet.app.util.SoundHelper
 import com.deskpet.app.util.SoundType
 import com.deskpet.app.util.SpeechHelper
@@ -46,6 +47,8 @@ class DeskPetApplication : Application() {
                 timestamp = System.currentTimeMillis()
             ))
             PetMemoryEngine(database, repository).generateIfNeeded()
+            // Settle overdue travels (offline settlement, 72h threshold)
+            TravelEngine(database, repository).settleOverdueTravels()
         }
     }
 

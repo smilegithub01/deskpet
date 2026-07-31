@@ -165,6 +165,34 @@ class TravelEngine(
     }
 
     /**
+     * Settles overdue travels on app launch.
+     *
+     * If a travel's return time has passed but it is still marked active
+     * (e.g. user was offline), this auto-settles it so rewards are not lost.
+     * Travels that exceeded the return time by more than [OVERDUE_THRESHOLD_MS]
+     * (72h) are force-settled silently.
+     */
+    suspend fun settleOverdueTravels(): TravelReturnResult? {
+        val active = travelLogDao.getActiveTravel() ?: return null
+        val now = System.currentTimeMillis()
+        if (now < active.returnTime) return null
+
+        // Overdue beyond threshold — settle now (offline settlement)
+        val overdueMs = now - active.returnTime
+        val result = checkTravelReturn()
+        if (overdueMs > OVERDUE_THRESHOLD_MS && result.returned) {
+            // Mark as offline-settled by appending note via repository mood update
+            repository.updateMood(5)
+        }
+        return result
+    }
+
+    companion object {
+        /** 72h: max offline grace period before force-settling a travel. */
+        const val OVERDUE_THRESHOLD_MS: Long = 72L * 60 * 60 * 1000
+    }
+
+    /**
      * Gets the active travel (if any) for UI display.
      */
     suspend fun getActiveTravel(): TravelLog? = travelLogDao.getActiveTravel()
