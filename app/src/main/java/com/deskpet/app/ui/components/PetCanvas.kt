@@ -9,12 +9,14 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -216,133 +218,122 @@ fun PetCanvas(
         PetImageLoader.loadPetBitmap(context, species, color)
     }
 
-    if (petBitmap != null) {
-        Image(
-            bitmap = petBitmap,
-            contentDescription = "桌宠",
-            modifier = modifier.graphicsLayer {
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center
+    ) {
+        // 底层：宠物主体（图片优先 / 矢量 fallback）
+        if (petBitmap != null) {
+            Image(
+                bitmap = petBitmap,
+                contentDescription = "桌宠",
+                modifier = Modifier.graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                    translationY = if (state == PetState.HAPPY || state == PetState.EXCITED) -6f else 0f
+                },
+                contentScale = ContentScale.Fit
+            )
+        } else {
+            Canvas(
+                modifier = Modifier.graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+            ) {
+                val a = PetAnchors(size.width, size.height)
+                drawGroundShadow(a, darkColor)
+                drawWatercolorBlob(
+                    cx = a.bodyCx, cy = a.bodyCy,
+                    rx = a.bodyRx, ry = a.bodyRy,
+                    mainColor = midColor, hiColor = lighterColor, dkColor = darkColor
+                )
+                drawEarsBeforeHead(a, species, baseColor, darkColor, lightColor, lighterColor)
+                drawSoftOutline(
+                    ovalRect = androidx.compose.ui.geometry.Rect(
+                        left = a.bodyCx - a.bodyRx * 0.97f,
+                        top = a.bodyCy - a.bodyRy * 0.97f,
+                        right = a.bodyCx + a.bodyRx * 0.97f,
+                        bottom = a.bodyCy + a.bodyRy * 0.97f
+                    ),
+                    strokeColor = OutlineColor, width = 0.8f, alpha = 0.25f
+                )
+                drawWatercolorBlob(
+                    cx = a.headCx, cy = a.headCy,
+                    rx = a.headR, ry = a.headR,
+                    mainColor = midColor, hiColor = lighterColor, dkColor = darkColor
+                )
+                drawSoftCircleOutline(
+                    center = Offset(a.headCx, a.headCy),
+                    radius = a.headR * 0.97f,
+                    strokeColor = OutlineColor, width = 0.7f, alpha = 0.25f
+                )
+                drawEarsAfterHead(a, species, baseColor, darkColor, lightColor, lighterColor)
+                drawBlushBlob(a.leftBlushX, a.blushY, a.blushR)
+                drawBlushBlob(a.rightBlushX, a.blushY, a.blushR)
+                if (blink || state == PetState.SLEEPY) {
+                    val bh = a.eyeW * 0.9f
+                    drawLine(EyeColor.copy(alpha = 0.9f),
+                        Offset(a.leftEyeX - bh, a.eyeY),
+                        Offset(a.leftEyeX + bh, a.eyeY),
+                        strokeWidth = a.eyeH * 0.6f, cap = StrokeCap.Round)
+                    drawLine(EyeColor.copy(alpha = 0.9f),
+                        Offset(a.rightEyeX - bh, a.eyeY),
+                        Offset(a.rightEyeX + bh, a.eyeY),
+                        strokeWidth = a.eyeH * 0.6f, cap = StrokeCap.Round)
+                } else {
+                    drawEye(a.leftEyeX, a.eyeY, a.eyeW, a.eyeH)
+                    drawEye(a.rightEyeX, a.eyeY, a.eyeW, a.eyeH)
+                }
+                when (species) {
+                    PetSpecies.CAT -> drawCatSnout(a)
+                    PetSpecies.DOG -> drawDogSnout(a)
+                    PetSpecies.RABBIT -> drawRabbitSnout(a)
+                    PetSpecies.HAMSTER -> drawHamsterSnout(a)
+                }
+                drawFoot(a.leftFootX, a.footY, a.footR, lightColor, midColor)
+                drawFoot(a.rightFootX, a.footY, a.footR, lightColor, midColor)
+                drawPaw(a.leftPawX, a.pawY, a.pawR, lightColor, midColor)
+                drawPaw(a.rightPawX, a.pawY, a.pawR, lightColor, midColor)
+            }
+        }
+
+        // 上层：装扮叠加层（始终渲染，图片/矢量模式都生效）
+        if (outfits.isNotEmpty()) {
+            Canvas(modifier = Modifier.graphicsLayer {
                 scaleX = scale
                 scaleY = scale
                 translationY = if (state == PetState.HAPPY || state == PetState.EXCITED) -6f else 0f
-            },
-            contentScale = ContentScale.Fit
-        )
-    } else {
-    Canvas(
-        modifier = modifier.graphicsLayer {
-            scaleX = scale
-            scaleY = scale
-        }
-    ) {
-        val a = PetAnchors(size.width, size.height)
-
-        // 0. GROUND SHADOW
-        drawGroundShadow(a, darkColor)
-
-        // 1. BODY (watercolor)
-        drawWatercolorBlob(
-            cx = a.bodyCx, cy = a.bodyCy,
-            rx = a.bodyRx, ry = a.bodyRy,
-            mainColor = midColor, hiColor = lighterColor, dkColor = darkColor
-        )
-
-        // 2. EARS BEFORE HEAD (cat, dog, hamster)
-        drawEarsBeforeHead(a, species, baseColor, darkColor, lightColor, lighterColor)
-
-        // 3. BODY OUTLINE (very soft)
-        drawSoftOutline(
-            ovalRect = androidx.compose.ui.geometry.Rect(
-                left = a.bodyCx - a.bodyRx * 0.97f,
-                top = a.bodyCy - a.bodyRy * 0.97f,
-                right = a.bodyCx + a.bodyRx * 0.97f,
-                bottom = a.bodyCy + a.bodyRy * 0.97f
-            ),
-            strokeColor = OutlineColor, width = 0.8f, alpha = 0.25f
-        )
-
-        // 4. HEAD (watercolor)
-        drawWatercolorBlob(
-            cx = a.headCx, cy = a.headCy,
-            rx = a.headR, ry = a.headR,
-            mainColor = midColor, hiColor = lighterColor, dkColor = darkColor
-        )
-
-        // 5. HEAD OUTLINE (very soft)
-        drawSoftCircleOutline(
-            center = Offset(a.headCx, a.headCy),
-            radius = a.headR * 0.97f,
-            strokeColor = OutlineColor, width = 0.7f, alpha = 0.25f
-        )
-
-        // 6. EARS AFTER HEAD (rabbit)
-        drawEarsAfterHead(a, species, baseColor, darkColor, lightColor, lighterColor)
-
-        // 7. BLUSH (under eyes, on cheeks)
-        drawBlushBlob(a.leftBlushX, a.blushY, a.blushR)
-        drawBlushBlob(a.rightBlushX, a.blushY, a.blushR)
-
-        // 8. EYES
-        if (blink || state == PetState.SLEEPY) {
-            val bh = a.eyeW * 0.9f
-            drawLine(EyeColor.copy(alpha = 0.9f),
-                Offset(a.leftEyeX - bh, a.eyeY),
-                Offset(a.leftEyeX + bh, a.eyeY),
-                strokeWidth = a.eyeH * 0.6f, cap = StrokeCap.Round)
-            drawLine(EyeColor.copy(alpha = 0.9f),
-                Offset(a.rightEyeX - bh, a.eyeY),
-                Offset(a.rightEyeX + bh, a.eyeY),
-                strokeWidth = a.eyeH * 0.6f, cap = StrokeCap.Round)
-        } else {
-            drawEye(a.leftEyeX, a.eyeY, a.eyeW, a.eyeH)
-            drawEye(a.rightEyeX, a.eyeY, a.eyeW, a.eyeH)
-        }
-
-        // 9. SNOUT
-        when (species) {
-            PetSpecies.CAT -> drawCatSnout(a)
-            PetSpecies.DOG -> drawDogSnout(a)
-            PetSpecies.RABBIT -> drawRabbitSnout(a)
-            PetSpecies.HAMSTER -> drawHamsterSnout(a)
-        }
-
-        // 10. FEET (back feet)
-        drawFoot(a.leftFootX, a.footY, a.footR, lightColor, midColor)
-        drawFoot(a.rightFootX, a.footY, a.footR, lightColor, midColor)
-
-        // 11. PAWS (front paws, visible)
-        drawPaw(a.leftPawX, a.pawY, a.pawR, lightColor, midColor)
-        drawPaw(a.rightPawX, a.pawY, a.pawR, lightColor, midColor)
-
-        // Outfits
-        if (outfits.isNotEmpty()) {
-            outfits.forEach { (category, outfitId) ->
-                val rendered = with(OutfitRenderer) {
-                    this@Canvas.render(outfitId, category, species, size.width, size.height)
-                }
-                if (!rendered) {
-                    drawIntoCanvas { canvas ->
-                        val paint = android.graphics.Paint().apply {
-                            textAlign = android.graphics.Paint.Align.CENTER
-                            isAntiAlias = true
+            }) {
+                val a = PetAnchors(size.width, size.height)
+                outfits.forEach { (category, outfitId) ->
+                    val rendered = with(OutfitRenderer) {
+                        this@Canvas.render(outfitId, category, species, size.width, size.height)
+                    }
+                    if (!rendered) {
+                        drawIntoCanvas { canvas ->
+                            val paint = android.graphics.Paint().apply {
+                                textAlign = android.graphics.Paint.Align.CENTER
+                                isAntiAlias = true
+                            }
+                            val (cx, cy, sizeFactor) = when (category) {
+                                OutfitCategory.HEAD -> Triple(a.headCx, a.headTopY - a.headR * 0.1f, 0.15f)
+                                OutfitCategory.GLASSES -> Triple(a.headCx, a.eyeY, 0.14f)
+                                OutfitCategory.COLLAR -> Triple(a.headCx, a.collarY, 0.12f)
+                                OutfitCategory.CLOTHING -> Triple(a.bodyCx, a.clothingY, 0.20f)
+                                OutfitCategory.TAIL -> Triple(a.tailX, a.tailY, 0.13f)
+                                OutfitCategory.ACCESSORY -> Triple(a.bodyLeft - a.headR * 0.15f, a.eyeY, 0.12f)
+                            }
+                            paint.textSize = size.width * sizeFactor
+                            val fm = paint.fontMetrics
+                            val baseline = cy - (fm.ascent + fm.descent) / 2f
+                            canvas.nativeCanvas.drawText(outfitId, cx, baseline, paint)
                         }
-                        val (cx, cy, sizeFactor) = when (category) {
-                            OutfitCategory.HEAD -> Triple(a.headCx, a.headTopY - a.headR * 0.1f, 0.15f)
-                            OutfitCategory.GLASSES -> Triple(a.headCx, a.eyeY, 0.14f)
-                            OutfitCategory.COLLAR -> Triple(a.headCx, a.collarY, 0.12f)
-                            OutfitCategory.CLOTHING -> Triple(a.bodyCx, a.clothingY, 0.20f)
-                            OutfitCategory.TAIL -> Triple(a.tailX, a.tailY, 0.13f)
-                            OutfitCategory.ACCESSORY -> Triple(a.bodyLeft - a.headR * 0.15f, a.eyeY, 0.12f)
-                        }
-                        paint.textSize = size.width * sizeFactor
-                        val fm = paint.fontMetrics
-                        val baseline = cy - (fm.ascent + fm.descent) / 2f
-                        canvas.nativeCanvas.drawText(outfitId, cx, baseline, paint)
                     }
                 }
             }
         }
     }
-    } // else vector fallback
 }
 
 // ============================================================
