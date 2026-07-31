@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
@@ -32,58 +33,63 @@ import com.deskpet.app.data.model.PetState
 import kotlinx.coroutines.delay
 
 // ============================================================
-// DESIGN TOKENS — v13 Watercolor Final Match (sitting pose)
-// All ratios driven by canvas size, no magic pixels.
+// DESIGN TOKENS — Watercolor Storybook (matches reference illustration)
+//  - Large expressive eyes with dual highlights
+//  - Soft multi-layer watercolor halos
+//  - Visible front paws (sitting pose)
+//  - Species-correct ear shapes
+//  - Prominent blush cheeks
 // ============================================================
 
-// BODY (oval, sitting low, slightly flattened)
+// BODY (oval, sitting, wider than tall)
 private const val BODY_CX_RATIO = 0.50f
 private const val BODY_CY_RATIO = 0.73f
-private const val BODY_RX_RATIO = 0.26f
+private const val BODY_RX_RATIO = 0.27f
 private const val BODY_RY_RATIO = 0.22f
 
-// HEAD (round, roughly as wide as body)
+// HEAD (round, slightly smaller than body)
 private const val HEAD_CX_RATIO = 0.50f
-private const val HEAD_CY_RATIO = 0.39f
-private const val HEAD_R_RATIO = 0.235f
+private const val HEAD_CY_RATIO = 0.38f
+private const val HEAD_R_RATIO = 0.22f
 
-// EYES (oval, positioned slightly below head center)
-private const val EYE_Y_OFFSET = 0.14f
-private const val EYE_X_OFFSET = 0.42f
-private const val EYE_W_RATIO = 0.24f   // eyeW / headR
-private const val EYE_H_RATIO = 0.28f   // eyeH / headR
+// EYES (large, oval, the focal point)
+private const val EYE_Y_OFFSET = 0.08f
+private const val EYE_X_OFFSET = 0.40f
+private const val EYE_W_RATIO = 0.35f
+private const val EYE_H_RATIO = 0.38f
 
-// BLUSH
-private const val BLUSH_Y_OFFSET = 0.42f
-private const val BLUSH_X_OFFSET = 0.58f
-private const val BLUSH_R_RATIO = 0.20f
+// BLUSH (prominent, on cheek area)
+private const val BLUSH_Y_OFFSET = 0.38f
+private const val BLUSH_X_OFFSET = 0.62f
+private const val BLUSH_R_RATIO = 0.28f
 
 // NOSE & MOUTH
 private const val NOSE_Y_OFFSET = 0.52f
-private const val NOSE_R_RATIO = 0.075f
+private const val NOSE_R_RATIO = 0.07f
 private const val MOUTH_Y_OFFSET = 0.66f
 
-// PAWS
-private const val PAW_X_OFFSET = 0.48f   // from bodyCx
-private const val PAW_Y_OFFSET = 0.10f   // from bodyBottom (upward)
-private const val PAW_R_RATIO = 0.13f    // pawR / headR
+// PAWS (visible at front, sitting pose)
+private const val PAW_X_OFFSET = 0.45f
+private const val PAW_Y_OFFSET = 0.02f
+private const val PAW_R_RATIO = 0.15f
 
-// FEET
-private const val FOOT_X_OFFSET = 0.68f
-private const val FOOT_R_RATIO = 0.15f
+// FEET (back feet, under body)
+private const val FOOT_X_OFFSET = 0.65f
+private const val FOOT_R_RATIO = 0.14f
 
-// Local drawing colors
-private val OutlineColor = Color(0x886E5046)        // 110, 85, 70 @ 53%
-private val OutlineSoft  = Color(0x556E5046)        // same @ 33%
-private val BlushColor   = Color(0x80F4A7B9)
+// Drawing colors
+private val OutlineColor = Color(0x886E5046)
+private val OutlineSoft  = Color(0x556E5046)
+private val BlushColor   = Color(0x88F4A7B9)
 private val EyeColor     = Color(0xFF2D2420)
 private val EyeLight     = Color(0xFF7A5545)
-private val EyeHiMain    = Color(0xEAFEF5EA)
-private val EyeHiSub     = Color(0x8CF0EEE8)
+private val EyeHiMain    = Color(0xF0FEF5EA)
+private val EyeHiSub     = Color(0x9CF0EEE8)
 private val HeartColor   = Color(0xFFFF6B9D)
 private val WhiskerColor = Color(0x4D5A5041)
 private val InnerEarPink = Color(0xB2FFBECE)
 private val NosePink     = Color(0xE6FF8FAB)
+private val HaloColor    = Color(0x40FFFFFF)
 
 // ============================================================
 // ANCHOR SYSTEM
@@ -126,6 +132,13 @@ private class PetAnchors(val w: Float, val h: Float) {
     val rightFootX = bodyCx + bodyRx * FOOT_X_OFFSET
     val footY = bodyBottom
     val footR = headR * FOOT_R_RATIO
+
+    // Outfit anchors (shared, no hardcoded magic numbers)
+    val headTopY = headCy - headR * 1.05f
+    val collarY = bodyTop + bodyRy * 0.12f
+    val clothingY = bodyCy + bodyRy * 0.22f
+    val tailX = bodyRight + headR * 0.15f
+    val tailY = bodyBottom - headR * 0.35f
 }
 
 @Composable
@@ -212,18 +225,18 @@ fun PetCanvas(
             mainColor = midColor, hiColor = lighterColor, dkColor = darkColor
         )
 
-        // 2. EARS BEFORE HEAD
-        drawEarsBeforeHead(a, species, midColor, darkColor, lightColor, lighterColor)
+        // 2. EARS BEFORE HEAD (cat, dog, hamster)
+        drawEarsBeforeHead(a, species, baseColor, darkColor, lightColor, lighterColor)
 
-        // 3. BODY SOFT OUTLINE
+        // 3. BODY OUTLINE (very soft)
         drawSoftOutline(
             ovalRect = androidx.compose.ui.geometry.Rect(
-                left = a.bodyCx - a.bodyRx * 0.985f,
-                top = a.bodyCy - a.bodyRy * 0.985f,
-                right = a.bodyCx + a.bodyRx * 0.985f,
-                bottom = a.bodyCy + a.bodyRy * 0.985f
+                left = a.bodyCx - a.bodyRx * 0.97f,
+                top = a.bodyCy - a.bodyRy * 0.97f,
+                right = a.bodyCx + a.bodyRx * 0.97f,
+                bottom = a.bodyCy + a.bodyRy * 0.97f
             ),
-            strokeColor = OutlineColor, width = 1.0f, alpha = 0.35f
+            strokeColor = OutlineColor, width = 0.8f, alpha = 0.25f
         )
 
         // 4. HEAD (watercolor)
@@ -233,29 +246,21 @@ fun PetCanvas(
             mainColor = midColor, hiColor = lighterColor, dkColor = darkColor
         )
 
-        // 5. HEAD SOFT OUTLINE
+        // 5. HEAD OUTLINE (very soft)
         drawSoftCircleOutline(
             center = Offset(a.headCx, a.headCy),
-            radius = a.headR * 0.985f,
-            strokeColor = OutlineColor, width = 0.9f, alpha = 0.35f
+            radius = a.headR * 0.97f,
+            strokeColor = OutlineColor, width = 0.7f, alpha = 0.25f
         )
 
         // 6. EARS AFTER HEAD (rabbit)
-        drawEarsAfterHead(a, species, midColor, darkColor, lightColor, lighterColor)
+        drawEarsAfterHead(a, species, baseColor, darkColor, lightColor, lighterColor)
 
-        // 7. FEET
-        drawFoot(a.leftFootX, a.footY, a.footR, lightColor, midColor)
-        drawFoot(a.rightFootX, a.footY, a.footR, lightColor, midColor)
-
-        // 8. PAWS
-        drawPaw(a.leftPawX, a.pawY, a.pawR, lightColor, midColor)
-        drawPaw(a.rightPawX, a.pawY, a.pawR, lightColor, midColor)
-
-        // 9. BLUSH
+        // 7. BLUSH (under eyes, on cheeks)
         drawBlushBlob(a.leftBlushX, a.blushY, a.blushR)
         drawBlushBlob(a.rightBlushX, a.blushY, a.blushR)
 
-        // 10. EYES
+        // 8. EYES
         if (blink || state == PetState.SLEEPY) {
             val bh = a.eyeW * 0.9f
             drawLine(EyeColor.copy(alpha = 0.9f),
@@ -271,13 +276,21 @@ fun PetCanvas(
             drawEye(a.rightEyeX, a.eyeY, a.eyeW, a.eyeH)
         }
 
-        // 11. SNOUT
+        // 9. SNOUT
         when (species) {
             PetSpecies.CAT -> drawCatSnout(a)
             PetSpecies.DOG -> drawDogSnout(a)
             PetSpecies.RABBIT -> drawRabbitSnout(a)
             PetSpecies.HAMSTER -> drawHamsterSnout(a)
         }
+
+        // 10. FEET (back feet)
+        drawFoot(a.leftFootX, a.footY, a.footR, lightColor, midColor)
+        drawFoot(a.rightFootX, a.footY, a.footR, lightColor, midColor)
+
+        // 11. PAWS (front paws, visible)
+        drawPaw(a.leftPawX, a.pawY, a.pawR, lightColor, midColor)
+        drawPaw(a.rightPawX, a.pawY, a.pawR, lightColor, midColor)
 
         // Outfits
         if (outfits.isNotEmpty()) {
@@ -292,16 +305,12 @@ fun PetCanvas(
                             isAntiAlias = true
                         }
                         val (cx, cy, sizeFactor) = when (category) {
-                            OutfitCategory.HEAD -> when (species) {
-                                PetSpecies.RABBIT -> Triple(size.width * 0.5f, size.height * 0.18f, 0.15f)
-                                PetSpecies.HAMSTER -> Triple(size.width * 0.5f, size.height * 0.02f, 0.16f)
-                                else -> Triple(size.width * 0.5f, size.height * 0.05f, 0.18f)
-                            }
+                            OutfitCategory.HEAD -> Triple(a.headCx, a.headTopY - a.headR * 0.1f, 0.15f)
                             OutfitCategory.GLASSES -> Triple(a.headCx, a.eyeY, 0.14f)
-                            OutfitCategory.COLLAR -> Triple(a.headCx, a.bodyTop + a.bodyRy * 0.15f, 0.12f)
-                            OutfitCategory.CLOTHING -> Triple(a.bodyCx, a.bodyCy + a.bodyRy * 0.2f, 0.20f)
-                            OutfitCategory.TAIL -> Triple(a.bodyRight + size.width * 0.04f, a.bodyBottom - size.height * 0.06f, 0.13f)
-                            OutfitCategory.ACCESSORY -> Triple(a.bodyLeft - size.width * 0.04f, a.eyeY, 0.12f)
+                            OutfitCategory.COLLAR -> Triple(a.headCx, a.collarY, 0.12f)
+                            OutfitCategory.CLOTHING -> Triple(a.bodyCx, a.clothingY, 0.20f)
+                            OutfitCategory.TAIL -> Triple(a.tailX, a.tailY, 0.13f)
+                            OutfitCategory.ACCESSORY -> Triple(a.bodyLeft - a.headR * 0.15f, a.eyeY, 0.12f)
                         }
                         paint.textSize = size.width * sizeFactor
                         val fm = paint.fontMetrics
@@ -320,44 +329,55 @@ fun PetCanvas(
 
 private fun DrawScope.drawGroundShadow(a: PetAnchors, dark: Color) {
     val g = Brush.radialGradient(
-        colors = listOf(dark.copy(alpha = 0.22f), dark.copy(alpha = 0f)),
-        center = Offset(a.bodyCx, a.bodyBottom + 6f),
-        radius = a.bodyRx * 1.5f
+        colors = listOf(dark.copy(alpha = 0.18f), dark.copy(alpha = 0f)),
+        center = Offset(a.bodyCx, a.bodyBottom + 4f),
+        radius = a.bodyRx * 1.4f
     )
     drawOval(
         brush = g,
-        topLeft = Offset(a.bodyCx - a.bodyRx * 1.25f, a.bodyBottom - a.bodyRy * 0.05f),
-        size = Size(a.bodyRx * 2.5f, a.bodyRy * 0.6f)
+        topLeft = Offset(a.bodyCx - a.bodyRx * 1.2f, a.bodyBottom - a.bodyRy * 0.02f),
+        size = Size(a.bodyRx * 2.4f, a.bodyRy * 0.5f)
     )
 }
 
-// Multi-layer watercolor blob (halo + body + highlight)
 private fun DrawScope.drawWatercolorBlob(
     cx: Float, cy: Float, rx: Float, ry: Float,
     mainColor: Color, hiColor: Color, dkColor: Color
 ) {
     val maxR = maxOf(rx, ry)
 
-    // Layer 1: soft halo (transparent)
+    // Layer 1: wide soft halo (watercolor wash)
     val halo = Brush.radialGradient(
-        colors = listOf(mainColor.copy(alpha = 0.08f), mainColor.copy(alpha = 0f)),
+        colors = listOf(mainColor.copy(alpha = 0.12f), mainColor.copy(alpha = 0f)),
         center = Offset(cx, cy),
-        radius = maxR * 1.8f
+        radius = maxR * 2.2f
     )
     drawOval(
         brush = halo,
-        topLeft = Offset(cx - rx * 1.7f, cy - ry * 1.7f),
-        size = Size(rx * 3.4f, ry * 3.4f)
+        topLeft = Offset(cx - rx * 2.0f, cy - ry * 2.0f),
+        size = Size(rx * 4.0f, ry * 4.0f)
     )
 
-    // Layer 2: body (gradient, soft edge)
+    // Layer 2: mid halo
+    val midHalo = Brush.radialGradient(
+        colors = listOf(hiColor.copy(alpha = 0.18f), mainColor.copy(alpha = 0f)),
+        center = Offset(cx - rx * 0.1f, cy - ry * 0.15f),
+        radius = maxR * 1.5f
+    )
+    drawOval(
+        brush = midHalo,
+        topLeft = Offset(cx - rx * 1.6f, cy - ry * 1.6f),
+        size = Size(rx * 3.2f, ry * 3.2f)
+    )
+
+    // Layer 3: body (gradient with soft edge fade-out)
     val body = Brush.radialGradient(
         0f to hiColor,
-        0.55f to mainColor,
-        0.85f to dkColor.copy(alpha = 0.85f),
+        0.45f to mainColor,
+        0.75f to dkColor.copy(alpha = 0.82f),
         1.0f to dkColor.copy(alpha = 0f),
-        center = Offset(cx - rx * 0.25f, cy - ry * 0.3f),
-        radius = maxR * 1.15f
+        center = Offset(cx - rx * 0.2f, cy - ry * 0.25f),
+        radius = maxR * 1.2f
     )
     drawOval(
         brush = body,
@@ -365,16 +385,16 @@ private fun DrawScope.drawWatercolorBlob(
         size = Size(rx * 2f, ry * 2f)
     )
 
-    // Layer 3: upper highlight
+    // Layer 4: upper highlight (pale wash)
     val hl = Brush.radialGradient(
-        colors = listOf(hiColor.copy(alpha = 0.6f), hiColor.copy(alpha = 0f)),
-        center = Offset(cx - rx * 0.3f, cy - ry * 0.45f),
+        colors = listOf(hiColor.copy(alpha = 0.55f), hiColor.copy(alpha = 0f)),
+        center = Offset(cx - rx * 0.35f, cy - ry * 0.5f),
         radius = rx * 0.6f
     )
     drawOval(
         brush = hl,
-        topLeft = Offset(cx - rx * 0.7f, cy - ry * 0.85f),
-        size = Size(rx * 1.1f, ry * 0.9f)
+        topLeft = Offset(cx - rx * 0.8f, cy - ry * 0.95f),
+        size = Size(rx * 1.3f, ry * 1.1f)
     )
 }
 
@@ -426,14 +446,14 @@ private fun DrawScope.drawSoftCircleOutline(
 }
 
 // ============================================================
-// EYES
+// EYES (large, expressive, with dual highlights)
 // ============================================================
 private fun DrawScope.drawEye(ex: Float, ey: Float, ew: Float, eh: Float) {
-    // Eye body (brown gradient)
+    // Eye body (brown radial gradient)
     val g = Brush.radialGradient(
         colors = listOf(EyeLight, EyeColor),
         center = Offset(ex - ew * 0.25f, ey - eh * 0.25f),
-        radius = maxOf(ew, eh) * 1.05f
+        radius = maxOf(ew, eh) * 1.0f
     )
     drawOval(
         brush = g,
@@ -441,71 +461,73 @@ private fun DrawScope.drawEye(ex: Float, ey: Float, ew: Float, eh: Float) {
         size = Size(ew * 2f, eh * 2f)
     )
 
-    // Main highlight (upper-left diagonal ellipse)
+    // Main highlight (large, upper-left)
     drawOval(
         color = EyeHiMain,
-        topLeft = Offset(ex - ew * 0.8f, ey - eh * 0.7f),
-        size = Size(ew * 0.8f, eh * 0.56f)
+        topLeft = Offset(ex - ew * 0.9f, ey - eh * 0.8f),
+        size = Size(ew * 0.95f, eh * 0.65f)
     )
 
-    // Secondary catchlight
+    // Secondary catchlight (small, lower-right)
     drawCircle(
         color = EyeHiSub,
-        radius = ew * 0.13f,
-        center = Offset(ex + ew * 0.35f, ey + eh * 0.22f)
+        radius = ew * 0.18f,
+        center = Offset(ex + ew * 0.42f, ey + eh * 0.28f)
     )
 }
 
 // ============================================================
-// BLUSH (very soft watercolor)
+// BLUSH (soft watercolor on cheeks)
 // ============================================================
 private fun DrawScope.drawBlushBlob(bx: Float, by: Float, br: Float) {
     val g = Brush.radialGradient(
-        0f to BlushColor.copy(alpha = 0.40f),
-        0.6f to BlushColor.copy(alpha = 0.18f),
+        0f to BlushColor.copy(alpha = 0.50f),
+        0.5f to BlushColor.copy(alpha = 0.22f),
         1f to BlushColor.copy(alpha = 0f),
         center = Offset(bx, by),
-        radius = br * 2.0f
+        radius = br * 1.8f
     )
     drawOval(
         brush = g,
-        topLeft = Offset(bx - br * 1.4f, by - br * 0.85f),
-        size = Size(br * 2.8f, br * 1.7f)
+        topLeft = Offset(bx - br * 1.3f, by - br * 0.8f),
+        size = Size(br * 2.6f, br * 1.6f)
     )
 }
 
 // ============================================================
-// PAWS & FEET (with pink pads)
+// PAWS & FEET
 // ============================================================
 private fun DrawScope.drawFoot(cx: Float, cy: Float, r: Float, light: Color, mid: Color) {
     val g = Brush.radialGradient(
         colors = listOf(light, mid),
-        center = Offset(cx, cy - r * 0.3f),
-        radius = r * 1.3f
+        center = Offset(cx, cy - r * 0.25f),
+        radius = r * 1.2f
     )
     drawOval(
         brush = g,
-        topLeft = Offset(cx - r, cy - r * 0.85f),
-        size = Size(r * 2f, r * 1.7f)
+        topLeft = Offset(cx - r, cy - r * 0.8f),
+        size = Size(r * 2f, r * 1.6f)
     )
+    // Pink pad
     drawOval(
         color = InnerEarPink,
-        topLeft = Offset(cx - r * 0.45f, cy - r * 0.45f),
-        size = Size(r * 0.9f, r * 0.56f)
+        topLeft = Offset(cx - r * 0.4f, cy - r * 0.4f),
+        size = Size(r * 0.8f, r * 0.5f)
     )
 }
 
 private fun DrawScope.drawPaw(cx: Float, cy: Float, r: Float, light: Color, mid: Color) {
     val g = Brush.radialGradient(
         colors = listOf(light, mid),
-        center = Offset(cx, cy - r * 0.3f),
-        radius = r * 1.2f
+        center = Offset(cx, cy - r * 0.25f),
+        radius = r * 1.1f
     )
     drawCircle(brush = g, radius = r, center = Offset(cx, cy))
+    // Pink pad
     drawOval(
         color = InnerEarPink,
-        topLeft = Offset(cx - r * 0.55f, cy - r * 0.28f),
-        size = Size(r * 1.1f, r * 0.76f)
+        topLeft = Offset(cx - r * 0.5f, cy - r * 0.25f),
+        size = Size(r * 1.0f, r * 0.7f)
     )
 }
 
@@ -523,80 +545,79 @@ private fun DrawScope.drawEarsBeforeHead(
 
     when (species) {
         PetSpecies.CAT -> {
-            val earBaseY = hcy - hr * 0.85f
-            val earTipY  = hcy - hr * 1.55f
-            val earInnerTipY = hcy - hr * 1.20f
+            val earBaseY = hcy - hr * 0.82f
+            val earTipY  = hcy - hr * 1.52f
             val earW = hr * 0.55f
             for (side in intArrayOf(-1, 1)) {
                 val cx = hcx + side * hr * 0.72f
-                // Outer ear
+                // Outer ear - triangular with soft watercolor
                 drawPath(Path().apply {
                     moveTo(cx - earW * 0.5f, earBaseY)
-                    cubicTo(cx - earW * 0.18f, earTipY + hr * 0.05f, cx - earW * 0.18f, earTipY + hr * 0.05f, cx, earTipY)
-                    cubicTo(cx + earW * 0.18f, earTipY + hr * 0.05f, cx + earW * 0.18f, earTipY + hr * 0.05f, cx + earW * 0.5f, earBaseY)
+                    cubicTo(cx - earW * 0.18f, earTipY + hr * 0.06f, cx - earW * 0.18f, earTipY + hr * 0.06f, cx, earTipY)
+                    cubicTo(cx + earW * 0.18f, earTipY + hr * 0.06f, cx + earW * 0.18f, earTipY + hr * 0.06f, cx + earW * 0.5f, earBaseY)
                     close()
                 }, base)
                 // Inner pink
                 drawPath(Path().apply {
-                    moveTo(cx - earW * 0.28f, earBaseY - hr * 0.03f)
-                    cubicTo(cx - earW * 0.08f, earInnerTipY, cx - earW * 0.08f, earInnerTipY, cx + earW * 0.08f, earInnerTipY)
-                    cubicTo(cx + earW * 0.28f, earBaseY - hr * 0.03f, cx + earW * 0.28f, earBaseY - hr * 0.03f, cx + earW * 0.28f, earBaseY - hr * 0.03f)
+                    moveTo(cx - earW * 0.32f, earBaseY - hr * 0.02f)
+                    cubicTo(cx - earW * 0.12f, earTipY + hr * 0.18f, cx - earW * 0.12f, earTipY + hr * 0.18f, cx + earW * 0.12f, earTipY + hr * 0.18f)
+                    cubicTo(cx + earW * 0.32f, earBaseY - hr * 0.02f, cx + earW * 0.32f, earBaseY - hr * 0.02f, cx + earW * 0.32f, earBaseY - hr * 0.02f)
                     close()
                 }, InnerEarPink)
             }
         }
 
         PetSpecies.DOG -> {
-            val earTopY = hcy - hr * 0.55f
-            val earBottomY = hcy + hr * 0.55f
-            val earW = hr * 0.40f
+            val earTopY = hcy - hr * 0.45f
+            val earBottomY = hcy + hr * 0.75f
+            val earW = hr * 0.42f
             for (side in intArrayOf(-1, 1)) {
                 val outerX = hcx + side * hr * 0.92f
-                val innerX = hcx + side * hr * 0.32f
-                // Outer ear
+                val innerX = hcx + side * hr * 0.28f
+                // Outer ear - floppy, hangs down with gentle curve
                 drawPath(Path().apply {
                     moveTo(innerX, earTopY)
                     cubicTo(
                         outerX - earW * 0.2f, earTopY - hr * 0.02f,
-                        outerX + side * earW * 0.5f, earTopY + hr * 0.25f,
-                        outerX + side * earW * 0.38f, earBottomY
+                        outerX + side * earW * 0.7f, earTopY + hr * 0.35f,
+                        outerX + side * earW * 0.5f, earBottomY
                     )
                     cubicTo(
-                        outerX + side * earW * 0.28f, earBottomY + hr * 0.08f,
-                        outerX - side * earW * 0.05f, earTopY + hr * 0.18f,
-                        innerX + side * 2f, earTopY + hr * 0.02f
+                        outerX + side * earW * 0.3f, earBottomY + hr * 0.12f,
+                        outerX - side * earW * 0.1f, earTopY + hr * 0.25f,
+                        innerX + side * 2f, earTopY + hr * 0.03f
                     )
                     close()
                 }, base)
                 // Inner pink
                 drawPath(Path().apply {
-                    moveTo(innerX + side * 3f, earTopY + hr * 0.02f)
+                    moveTo(innerX + side * 2f, earTopY + hr * 0.03f)
                     cubicTo(
-                        outerX - side * earW * 0.12f, earTopY + hr * 0.05f,
-                        outerX + side * earW * 0.30f, earTopY + hr * 0.30f,
-                        outerX + side * earW * 0.25f, earBottomY - hr * 0.03f
+                        outerX - side * earW * 0.1f, earTopY + hr * 0.1f,
+                        outerX + side * earW * 0.4f, earTopY + hr * 0.4f,
+                        outerX + side * earW * 0.35f, earBottomY - hr * 0.05f
                     )
                     cubicTo(
-                        outerX + side * earW * 0.15f, earBottomY + hr * 0.04f,
-                        outerX - side * earW * 0.03f, earTopY + hr * 0.18f,
-                        innerX + side * 4f, earTopY + hr * 0.06f
+                        outerX + side * earW * 0.2f, earBottomY + hr * 0.08f,
+                        outerX - side * earW * 0.05f, earTopY + hr * 0.22f,
+                        innerX + side * 3f, earTopY + hr * 0.08f
                     )
                     close()
-                }, InnerEarPink.copy(alpha = 0.75f))
+                }, InnerEarPink.copy(alpha = 0.70f))
             }
         }
 
         PetSpecies.HAMSTER -> {
-            val earR = hr * 0.20f
+            val earR = hr * 0.24f
             val earY = hcy - hr * 0.88f
             for (side in intArrayOf(-1, 1)) {
                 val ex = hcx + side * hr * 0.52f
                 drawCircle(base, radius = earR, center = Offset(ex, earY))
-                drawCircle(InnerEarPink.copy(alpha = 0.9f), radius = earR * 0.52f, center = Offset(ex, earY))
+                drawCircle(InnerEarPink.copy(alpha = 0.85f), radius = earR * 0.55f, center = Offset(ex, earY))
             }
         }
 
-        else -> {} // rabbit ears drawn after head
+        else -> {}
     }
 }
 
@@ -614,19 +635,19 @@ private fun DrawScope.drawEarsAfterHead(
     val hr = a.headR
 
     val earH = hr * 1.80f
-    val earW = hr * 0.30f
+    val earW = hr * 0.34f
     val topY = hcy - hr * 1.75f
-    val bottomY = hcy - hr * 0.22f
+    val bottomY = hcy - hr * 0.20f
     val midY = (topY + bottomY) / 2f
 
     for (side in intArrayOf(-1, 1)) {
-        val ex = hcx + side * hr * 0.28f
+        val ex = hcx + side * hr * 0.32f
         // Outer ear
         drawOval(
             brush = Brush.radialGradient(
                 colors = listOf(lighter, base),
-                center = Offset(ex, midY - earH * 0.15f),
-                radius = earH * 0.9f
+                center = Offset(ex, midY - earH * 0.12f),
+                radius = earH * 0.85f
             ),
             topLeft = Offset(ex - earW / 2f, midY - earH / 2f),
             size = Size(earW, earH)
@@ -634,8 +655,8 @@ private fun DrawScope.drawEarsAfterHead(
         // Inner pink
         drawOval(
             InnerEarPink,
-            topLeft = Offset(ex - earW * 0.225f, midY + earH * 0.08f - earH * 0.2475f),
-            size = Size(earW * 0.45f, earH * 0.55f)
+            topLeft = Offset(ex - earW * 0.22f, midY + earH * 0.08f - earH * 0.25f),
+            size = Size(earW * 0.44f, earH * 0.50f)
         )
     }
 }
@@ -644,82 +665,70 @@ private fun DrawScope.drawEarsAfterHead(
 // SNOUT
 // ============================================================
 private fun DrawScope.drawCatSnout(a: PetAnchors) {
-    // Triangular nose
     drawPath(Path().apply {
         moveTo(a.headCx, a.noseY - a.noseR)
         lineTo(a.headCx - a.noseR * 1.15f, a.noseY + a.noseR * 0.85f)
         lineTo(a.headCx + a.noseR * 1.15f, a.noseY + a.noseR * 0.85f)
         close()
     }, NosePink)
-    // Mouth
     drawPath(Path().apply {
         moveTo(a.headCx - a.noseR * 1.15f, a.mouthY)
         cubicTo(a.headCx, a.mouthY + a.noseR * 0.55f, a.headCx, a.mouthY + a.noseR * 0.55f, a.headCx + a.noseR * 1.15f, a.mouthY)
-    }, color = OutlineSoft, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.6f, cap = StrokeCap.Round))
-    // Whiskers
+    }, color = OutlineSoft, style = Stroke(width = 1.5f, cap = StrokeCap.Round))
     strokeWhiskers(a)
 }
 
 private fun DrawScope.drawDogSnout(a: PetAnchors) {
-    // Small round nose
     drawCircle(EyeColor, radius = a.noseR * 1.15f, center = Offset(a.headCx, a.noseY))
-    // Snout pad below
     drawOval(
         NosePink.copy(alpha = 0.55f),
-        topLeft = Offset(a.headCx - a.noseR * 1.35f, a.noseY + a.noseR * 0.85f),
-        size = Size(a.noseR * 2.7f, a.noseR * 1.1f)
+        topLeft = Offset(a.headCx - a.noseR * 1.30f, a.noseY + a.noseR * 0.80f),
+        size = Size(a.noseR * 2.6f, a.noseR * 1.0f)
     )
-    // Mouth
     drawPath(Path().apply {
-        moveTo(a.headCx - a.noseR * 1.55f, a.mouthY + a.noseR * 0.25f)
-        cubicTo(a.headCx, a.mouthY + a.noseR * 1.0f, a.headCx, a.mouthY + a.noseR * 1.0f, a.headCx + a.noseR * 1.55f, a.mouthY + a.noseR * 0.25f)
-    }, color = OutlineSoft, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.6f, cap = StrokeCap.Round))
+        moveTo(a.headCx - a.noseR * 1.50f, a.mouthY + a.noseR * 0.20f)
+        cubicTo(a.headCx, a.mouthY + a.noseR * 0.95f, a.headCx, a.mouthY + a.noseR * 0.95f, a.headCx + a.noseR * 1.50f, a.mouthY + a.noseR * 0.20f)
+    }, color = OutlineSoft, style = Stroke(width = 1.5f, cap = StrokeCap.Round))
 }
 
 private fun DrawScope.drawRabbitSnout(a: PetAnchors) {
-    // Oval nose
     drawOval(
         NosePink,
-        topLeft = Offset(a.headCx - a.noseR * 0.95f, a.noseY - a.noseR * 0.7f),
-        size = Size(a.noseR * 1.9f, a.noseR * 1.4f)
+        topLeft = Offset(a.headCx - a.noseR * 0.90f, a.noseY - a.noseR * 0.65f),
+        size = Size(a.noseR * 1.8f, a.noseR * 1.3f)
     )
-    // Mouth
     drawPath(Path().apply {
-        moveTo(a.headCx, a.noseY + a.noseR * 0.75f)
+        moveTo(a.headCx, a.noseY + a.noseR * 0.70f)
         lineTo(a.headCx, a.mouthY)
-    }, color = OutlineSoft, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.6f, cap = StrokeCap.Round))
+    }, color = OutlineSoft, style = Stroke(width = 1.5f, cap = StrokeCap.Round))
     drawPath(Path().apply {
-        moveTo(a.headCx - a.noseR * 1.15f, a.mouthY)
-        cubicTo(a.headCx, a.mouthY + a.noseR * 0.5f, a.headCx, a.mouthY + a.noseR * 0.5f, a.headCx + a.noseR * 1.15f, a.mouthY)
-    }, color = OutlineSoft, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.6f, cap = StrokeCap.Round))
+        moveTo(a.headCx - a.noseR * 1.10f, a.mouthY)
+        cubicTo(a.headCx, a.mouthY + a.noseR * 0.45f, a.headCx, a.mouthY + a.noseR * 0.45f, a.headCx + a.noseR * 1.10f, a.mouthY)
+    }, color = OutlineSoft, style = Stroke(width = 1.5f, cap = StrokeCap.Round))
 }
 
 private fun DrawScope.drawHamsterSnout(a: PetAnchors) {
-    // Round nose
-    drawCircle(NosePink, radius = a.noseR * 0.95f, center = Offset(a.headCx, a.noseY))
-    // Mouth
+    drawCircle(NosePink, radius = a.noseR * 0.90f, center = Offset(a.headCx, a.noseY))
     drawPath(Path().apply {
         moveTo(a.headCx - a.noseR, a.mouthY)
-        cubicTo(a.headCx, a.mouthY + a.noseR * 0.4f, a.headCx, a.mouthY + a.noseR * 0.4f, a.headCx + a.noseR, a.mouthY)
-    }, color = OutlineSoft, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f, cap = StrokeCap.Round))
+        cubicTo(a.headCx, a.mouthY + a.noseR * 0.35f, a.headCx, a.mouthY + a.noseR * 0.35f, a.headCx + a.noseR, a.mouthY)
+    }, color = OutlineSoft, style = Stroke(width = 1.4f, cap = StrokeCap.Round))
     strokeWhiskers(a)
 }
 
 private fun DrawScope.strokeWhiskers(a: PetAnchors) {
-    // Left whiskers
     drawLine(WhiskerColor,
-        Offset(a.headCx - a.headR * 0.28f, a.noseY + a.noseR),
-        Offset(a.headCx - a.headR * 0.82f, a.noseY + a.noseR * 0.25f), 1.1f)
+        Offset(a.headCx - a.headR * 0.25f, a.noseY + a.noseR),
+        Offset(a.headCx - a.headR * 0.80f, a.noseY + a.noseR * 0.2f), 1.0f)
     drawLine(WhiskerColor,
-        Offset(a.headCx - a.headR * 0.28f, a.noseY + a.noseR * 1.6f),
-        Offset(a.headCx - a.headR * 0.82f, a.noseY + a.noseR * 1.05f), 1.1f)
-    // Right whiskers
+        Offset(a.headCx - a.headR * 0.25f, a.noseY + a.noseR * 1.5f),
+        Offset(a.headCx - a.headR * 0.80f, a.noseY + a.noseR * 1.0f), 1.0f)
     drawLine(WhiskerColor,
-        Offset(a.headCx + a.headR * 0.28f, a.noseY + a.noseR),
-        Offset(a.headCx + a.headR * 0.82f, a.noseY + a.noseR * 0.25f), 1.1f)
+        Offset(a.headCx + a.headR * 0.25f, a.noseY + a.noseR),
+        Offset(a.headCx + a.headR * 0.80f, a.noseY + a.noseR * 0.2f), 1.0f)
     drawLine(WhiskerColor,
-        Offset(a.headCx + a.headR * 0.28f, a.noseY + a.noseR * 1.6f),
-        Offset(a.headCx + a.headR * 0.82f, a.noseY + a.noseR * 1.05f), 1.1f)
+        Offset(a.headCx + a.headR * 0.25f, a.noseY + a.noseR * 1.5f),
+        Offset(a.headCx + a.headR * 0.80f, a.noseY + a.noseR * 1.0f), 1.0f)
 }
 
 // ============================================================

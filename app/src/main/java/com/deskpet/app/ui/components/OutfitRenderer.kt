@@ -2,6 +2,7 @@ package com.deskpet.app.ui.components
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -12,10 +13,19 @@ import com.deskpet.app.data.model.PetSpecies
 object OutfitRenderer {
 
     private val GoldColor = Color(0xFFFFD700)
+    private val GoldHi = Color(0xFFFFEB82)
+    private val GoldDk = Color(0xFFD4A017)
     private val SilverColor = Color(0xFFC0C0C0)
     private val RedColor = Color(0xFFE8392B)
+    private val RedHi = Color(0xFFFF7864)
+    private val RedDk = Color(0xFFB41E14)
     private val PinkAccent = Color(0xFFFF6B9D)
+    private val PinkHi = Color(0xFFFFB3CE)
+    private val PinkDk = Color(0xFFE44D82)
     private val DarkAccent = Color(0xFF2D2420)
+    private val BlueHi = Color(0xFFB4E1FF)
+    private val BlueColor = Color(0xFF4FC3F7)
+    private val BlueDk = Color(0xFF2896DC)
 
     fun DrawScope.render(
         outfitId: String,
@@ -24,22 +34,23 @@ object OutfitRenderer {
         w: Float,
         h: Float
     ): Boolean {
-        val (cx, cy, _) = getPosition(category, species, w, h)
+        val (cx, cy, sizeFactor) = getPosition(category, species, w, h)
+        val r = w * sizeFactor
 
         val rendered = when (outfitId) {
-            "head_bow" -> { drawBow(cx, cy, w * 0.12f, PinkAccent); true }
-            "head_flower" -> { drawFlower(cx, cy, w * 0.10f); true }
-            "head_crown" -> { drawCrown(cx, cy, w * 0.14f, GoldColor); true }
-            "head_beanie" -> { drawBeanie(cx, cy, w * 0.16f, RedColor); true }
-            "glasses_round" -> { drawRoundGlasses(cx, cy, w * 0.12f, DarkAccent); true }
-            "glasses_sun" -> { drawSunglasses(cx, cy, w * 0.13f, DarkAccent); true }
-            "glasses_heart" -> { drawHeartGlasses(cx, cy, w * 0.11f, PinkAccent); true }
-            "collar_bell" -> { drawBellCollar(cx, cy, w * 0.14f, GoldColor); true }
-            "collar_ribbon" -> { drawRibbonCollar(cx, cy, w * 0.13f, PinkAccent); true }
-            "cloth_scarf" -> { drawScarf(cx, cy, w * 0.18f, RedColor); true }
-            "tail_ribbon" -> { drawTailRibbon(cx, cy, w * 0.10f, PinkAccent); true }
-            "tail_star" -> { drawStar(cx, cy, w * 0.10f, GoldColor); true }
-            "acc_balloon" -> { drawBalloon(cx, cy, w * 0.12f, PinkAccent); true }
+            "head_bow" -> { drawBow(cx, cy, r); true }
+            "head_flower" -> { drawFlower(cx, cy, r); true }
+            "head_crown" -> { drawCrown(cx, cy, r); true }
+            "head_beanie" -> { drawBeanie(cx, cy, r); true }
+            "glasses_round" -> { drawRoundGlasses(cx, cy, r); true }
+            "glasses_sun" -> { drawSunglasses(cx, cy, r); true }
+            "glasses_heart" -> { drawHeartGlasses(cx, cy, r); true }
+            "collar_bell" -> { drawBellCollar(cx, cy, r); true }
+            "collar_ribbon" -> { drawRibbonCollar(cx, cy, r); true }
+            "cloth_scarf" -> { drawScarf(cx, cy, r); true }
+            "tail_ribbon" -> { drawTailRibbon(cx, cy, r); true }
+            "tail_star" -> { drawStar(cx, cy, r); true }
+            "acc_balloon" -> { drawBalloon(cx, cy, r); true }
             else -> false
         }
         return rendered
@@ -52,124 +63,225 @@ object OutfitRenderer {
         h: Float
     ): Triple<Float, Float, Float> = when (category) {
         OutfitCategory.HEAD -> when (species) {
-            PetSpecies.RABBIT -> Triple(w * 0.5f, h * 0.18f, 0.15f)
-            PetSpecies.HAMSTER -> Triple(w * 0.5f, h * 0.02f, 0.16f)
-            else -> Triple(w * 0.5f, h * 0.05f, 0.18f)
+            PetSpecies.RABBIT -> Triple(w * 0.5f, h * 0.15f, 0.14f)
+            PetSpecies.HAMSTER -> Triple(w * 0.5f, h * 0.22f, 0.15f)
+            else -> Triple(w * 0.5f, h * 0.20f, 0.15f)
         }
-        OutfitCategory.GLASSES -> when (species) {
-            PetSpecies.RABBIT -> Triple(w * 0.5f, h * 0.40f, 0.13f)
-            PetSpecies.HAMSTER -> Triple(w * 0.5f, h * 0.36f, 0.13f)
-            else -> Triple(w * 0.5f, h * 0.38f, 0.14f)
-        }
-        OutfitCategory.COLLAR -> when (species) {
-            PetSpecies.HAMSTER -> Triple(w * 0.5f, h * 0.82f, 0.13f)
-            else -> Triple(w * 0.5f, h * 0.78f, 0.12f)
-        }
+        OutfitCategory.GLASSES -> Triple(w * 0.5f, h * 0.40f, 0.14f)
+        OutfitCategory.COLLAR -> Triple(w * 0.5f, h * 0.58f, 0.14f)
         OutfitCategory.CLOTHING -> when (species) {
-            PetSpecies.HAMSTER -> Triple(w * 0.5f, h * 0.68f, 0.22f)
-            PetSpecies.RABBIT -> Triple(w * 0.5f, h * 0.62f, 0.19f)
-            else -> Triple(w * 0.5f, h * 0.65f, 0.20f)
+            PetSpecies.RABBIT -> Triple(w * 0.5f, h * 0.68f, 0.20f)
+            else -> Triple(w * 0.5f, h * 0.70f, 0.20f)
         }
-        OutfitCategory.TAIL -> Triple(w * 0.88f, h * 0.80f, 0.13f)
-        OutfitCategory.ACCESSORY -> Triple(w * 0.13f, h * 0.45f, 0.12f)
+        OutfitCategory.TAIL -> Triple(w * 0.82f, h * 0.76f, 0.12f)
+        OutfitCategory.ACCESSORY -> Triple(w * 0.12f, h * 0.42f, 0.12f)
     }
 
-    private fun DrawScope.drawBow(cx: Float, cy: Float, r: Float, color: Color) {
+    // ============================================================
+    // WATERCOLOR HELPER
+    // ============================================================
+    private fun DrawScope.drawWatercolorBlob(
+        cx: Float, cy: Float, rx: Float, ry: Float,
+        mainColor: Color, hiColor: Color, dkColor: Color
+    ) {
+        val maxR = maxOf(rx, ry)
+        val halo = Brush.radialGradient(
+            colors = listOf(mainColor.copy(alpha = 0.12f), mainColor.copy(alpha = 0f)),
+            center = Offset(cx, cy),
+            radius = maxR * 2.0f
+        )
+        drawOval(
+            brush = halo,
+            topLeft = Offset(cx - rx * 1.8f, cy - ry * 1.8f),
+            size = Size(rx * 3.6f, ry * 3.6f)
+        )
+        val body = Brush.radialGradient(
+            0f to hiColor,
+            0.5f to mainColor,
+            0.85f to dkColor.copy(alpha = 0.85f),
+            1f to dkColor.copy(alpha = 0f),
+            center = Offset(cx - rx * 0.2f, cy - ry * 0.25f),
+            radius = maxR * 1.1f
+        )
+        drawOval(
+            brush = body,
+            topLeft = Offset(cx - rx, cy - ry),
+            size = Size(rx * 2f, ry * 2f)
+        )
+        val hl = Brush.radialGradient(
+            colors = listOf(hiColor.copy(alpha = 0.50f), hiColor.copy(alpha = 0f)),
+            center = Offset(cx - rx * 0.3f, cy - ry * 0.4f),
+            radius = rx * 0.5f
+        )
+        drawOval(
+            brush = hl,
+            topLeft = Offset(cx - rx * 0.7f, cy - ry * 0.75f),
+            size = Size(rx * 1.1f, ry * 0.9f)
+        )
+    }
+
+    private fun DrawScope.drawWatercolorCircle(
+        cx: Float, cy: Float, r: Float,
+        mainColor: Color, hiColor: Color, dkColor: Color
+    ) {
+        drawWatercolorBlob(cx, cy, r, r, mainColor, hiColor, dkColor)
+    }
+
+    private fun DrawScope.drawWatercolorLeaf(
+        cx: Float, cy: Float, r: Float,
+        mainColor: Color, hiColor: Color, dkColor: Color,
+        angle: Float
+    ) {
         val path = Path().apply {
-            moveTo(cx, cy)
-            cubicTo(cx - r, cy - r * 0.6f, cx - r, cy + r * 0.6f, cx, cy)
-            cubicTo(cx + r, cy - r * 0.6f, cx + r, cy + r * 0.6f, cx, cy)
+            val rad = angle
+            val cos = Math.cos(rad).toFloat()
+            val sin = Math.sin(rad).toFloat()
+            moveTo(cx + 0f * cos - (-r) * sin, cy + 0f * sin + (-r) * cos)
+            quadraticTo(
+                cx + r * 0.6f * cos - 0f * sin, cy + r * 0.6f * sin + 0f * cos,
+                cx + 0f * cos - r * sin, cy + 0f * sin + r * cos
+            )
+            quadraticTo(
+                cx + (-r * 0.6f) * cos - 0f * sin, cy + (-r * 0.6f) * sin + 0f * cos,
+                cx + 0f * cos - (-r) * sin, cy + 0f * sin + (-r) * cos
+            )
             close()
         }
-        drawPath(path, color)
-        drawCircle(color.darker(), r * 0.2f, Offset(cx, cy))
+        val g = Brush.linearGradient(
+            colors = listOf(hiColor, mainColor, dkColor),
+            start = Offset(cx, cy - r),
+            end = Offset(cx, cy + r)
+        )
+        drawPath(path, g)
+    }
+
+    // ============================================================
+    // DECORATIONS
+    // ============================================================
+    private fun DrawScope.drawBow(cx: Float, cy: Float, r: Float) {
+        drawWatercolorLeaf(cx - r * 0.5f, cy, r * 0.6f, PinkAccent, PinkHi, PinkDk, -0.3f)
+        drawWatercolorLeaf(cx + r * 0.5f, cy, r * 0.6f, PinkAccent, PinkHi, PinkDk, 0.3f)
+        drawWatercolorCircle(cx, cy, r * 0.22f, PinkDk, PinkAccent, PinkDk)
     }
 
     private fun DrawScope.drawFlower(cx: Float, cy: Float, r: Float) {
-        val petalColor = Color(0xFFFF69B4)
-        val centerColor = Color(0xFFFFD700)
         repeat(5) { i ->
             val angle = (i * 72.0 - 90.0) * Math.PI / 180.0
-            val px = cx + (r * 0.7f * Math.cos(angle)).toFloat()
-            val py = cy + (r * 0.7f * Math.sin(angle)).toFloat()
-            drawCircle(petalColor, r * 0.5f, Offset(px, py))
+            val px = cx + (r * 0.55f * Math.cos(angle)).toFloat()
+            val py = cy + (r * 0.55f * Math.sin(angle)).toFloat()
+            drawWatercolorCircle(px, py, r * 0.35f, PinkAccent, PinkHi, PinkDk)
         }
-        drawCircle(centerColor, r * 0.35f, Offset(cx, cy))
+        drawWatercolorCircle(cx, cy, r * 0.28f, GoldColor, GoldHi, GoldDk)
     }
 
-    private fun DrawScope.drawCrown(cx: Float, cy: Float, r: Float, color: Color) {
+    private fun DrawScope.drawCrown(cx: Float, cy: Float, r: Float) {
         val path = Path().apply {
-            moveTo(cx - r, cy + r * 0.5f)
-            lineTo(cx - r, cy - r * 0.2f)
-            lineTo(cx - r * 0.5f, cy + r * 0.1f)
-            lineTo(cx, cy - r * 0.6f)
-            lineTo(cx + r * 0.5f, cy + r * 0.1f)
-            lineTo(cx + r, cy - r * 0.2f)
-            lineTo(cx + r, cy + r * 0.5f)
+            moveTo(cx - r, cy + r * 0.4f)
+            lineTo(cx - r, cy - r * 0.1f)
+            lineTo(cx - r * 0.5f, cy + r * 0.15f)
+            lineTo(cx, cy - r * 0.5f)
+            lineTo(cx + r * 0.5f, cy + r * 0.15f)
+            lineTo(cx + r, cy - r * 0.1f)
+            lineTo(cx + r, cy + r * 0.4f)
             close()
         }
-        drawPath(path, color)
-        drawCircle(Color(0xFFFF6B9D), r * 0.12f, Offset(cx, cy - r * 0.25f))
-        drawCircle(Color(0xFF4FC3F7), r * 0.08f, Offset(cx - r * 0.5f, cy))
-        drawCircle(Color(0xFF4FC3F7), r * 0.08f, Offset(cx + r * 0.5f, cy))
+        val g = Brush.linearGradient(
+            colors = listOf(GoldHi, GoldColor, GoldDk),
+            start = Offset(cx, cy - r * 0.5f),
+            end = Offset(cx, cy + r * 0.4f)
+        )
+        drawPath(path, g)
+        drawWatercolorCircle(cx, cy - r * 0.2f, r * 0.08f, PinkAccent, PinkHi, PinkDk)
+        drawWatercolorCircle(cx - r * 0.5f, cy + r * 0.05f, r * 0.06f, BlueColor, BlueHi, BlueDk)
+        drawWatercolorCircle(cx + r * 0.5f, cy + r * 0.05f, r * 0.06f, BlueColor, BlueHi, BlueDk)
     }
 
-    private fun DrawScope.drawBeanie(cx: Float, cy: Float, r: Float, color: Color) {
+    private fun DrawScope.drawBeanie(cx: Float, cy: Float, r: Float) {
+        val g = Brush.linearGradient(
+            colors = listOf(RedHi, RedColor, RedDk),
+            start = Offset(cx, cy - r),
+            end = Offset(cx, cy + r)
+        )
         drawArc(
-            color = color,
+            brush = g,
             startAngle = 180f,
             sweepAngle = 180f,
             useCenter = true,
             topLeft = Offset(cx - r, cy - r),
             size = Size(r * 2, r * 2)
         )
-        drawCircle(color.darker(), r * 0.15f, Offset(cx, cy - r))
+        drawCircle(RedDk, r * 0.12f, Offset(cx, cy - r))
     }
 
-    private fun DrawScope.drawRoundGlasses(cx: Float, cy: Float, r: Float, color: Color) {
-        drawCircle(color, r * 0.5f, Offset(cx - r * 0.55f, cy), style = Stroke(width = r * 0.1f))
-        drawCircle(color, r * 0.5f, Offset(cx + r * 0.55f, cy), style = Stroke(width = r * 0.1f))
-        drawLine(color, Offset(cx - r * 0.05f, cy), Offset(cx + r * 0.05f, cy), r * 0.08f)
+    private fun DrawScope.drawRoundGlasses(cx: Float, cy: Float, r: Float) {
+        val g = Brush.radialGradient(
+            colors = listOf(Color(0x33FFFFFF), Color(0x00FFFFFF)),
+            center = Offset(cx, cy),
+            radius = r * 0.5f
+        )
+        drawCircle(
+            brush = g,
+            radius = r * 0.45f,
+            center = Offset(cx - r * 0.55f, cy)
+        )
+        drawCircle(
+            brush = g,
+            radius = r * 0.45f,
+            center = Offset(cx + r * 0.55f, cy)
+        )
+        drawCircle(DarkAccent, r * 0.5f, Offset(cx - r * 0.55f, cy), style = Stroke(width = r * 0.08f))
+        drawCircle(DarkAccent, r * 0.5f, Offset(cx + r * 0.55f, cy), style = Stroke(width = r * 0.08f))
+        drawLine(DarkAccent, Offset(cx - r * 0.05f, cy), Offset(cx + r * 0.05f, cy), r * 0.08f)
     }
 
-    private fun DrawScope.drawSunglasses(cx: Float, cy: Float, r: Float, color: Color) {
+    private fun DrawScope.drawSunglasses(cx: Float, cy: Float, r: Float) {
+        val g = Brush.radialGradient(
+            colors = listOf(Color(0xFF555555), Color(0xFF2D2420)),
+            center = Offset(cx, cy),
+            radius = r
+        )
         drawRoundRect(
-            color = color,
+            brush = g,
             topLeft = Offset(cx - r, cy - r * 0.3f),
             size = Size(r * 2, r * 0.6f),
             cornerRadius = androidx.compose.ui.geometry.CornerRadius(r * 0.15f, r * 0.15f)
         )
     }
 
-    private fun DrawScope.drawHeartGlasses(cx: Float, cy: Float, r: Float, color: Color) {
+    private fun DrawScope.drawHeartGlasses(cx: Float, cy: Float, r: Float) {
         val leftHeart = Path().apply {
             moveTo(cx - r * 0.55f, cy + r * 0.15f)
             cubicTo(cx - r * 0.55f - r * 0.4f, cy - r * 0.2f, cx - r * 0.55f - r * 0.3f, cy - r * 0.5f, cx - r * 0.55f, cy - r * 0.25f)
             cubicTo(cx - r * 0.55f + r * 0.3f, cy - r * 0.5f, cx - r * 0.55f + r * 0.4f, cy - r * 0.2f, cx - r * 0.55f, cy + r * 0.15f)
             close()
         }
-        drawPath(leftHeart, color)
+        val g = Brush.radialGradient(
+            colors = listOf(PinkHi, PinkAccent, PinkDk),
+            center = Offset(cx - r * 0.55f, cy),
+            radius = r * 0.6f
+        )
+        drawPath(leftHeart, g)
         val rightHeart = Path().apply {
             moveTo(cx + r * 0.55f, cy + r * 0.15f)
             cubicTo(cx + r * 0.55f - r * 0.4f, cy - r * 0.2f, cx + r * 0.55f - r * 0.3f, cy - r * 0.5f, cx + r * 0.55f, cy - r * 0.25f)
             cubicTo(cx + r * 0.55f + r * 0.3f, cy - r * 0.5f, cx + r * 0.55f + r * 0.4f, cy - r * 0.2f, cx + r * 0.55f, cy + r * 0.15f)
             close()
         }
-        drawPath(rightHeart, color)
+        drawPath(rightHeart, g)
     }
 
-    private fun DrawScope.drawBellCollar(cx: Float, cy: Float, r: Float, color: Color) {
-        drawLine(color.darker(), Offset(cx - r, cy), Offset(cx + r, cy), r * 0.12f)
-        drawCircle(color, r * 0.3f, Offset(cx, cy + r * 0.2f))
-        drawLine(color.darker(), Offset(cx, cy + r * 0.1f), Offset(cx, cy + r * 0.3f), r * 0.06f)
+    private fun DrawScope.drawBellCollar(cx: Float, cy: Float, r: Float) {
+        drawLine(GoldDk, Offset(cx - r, cy), Offset(cx + r, cy), r * 0.10f)
+        drawWatercolorCircle(cx, cy + r * 0.25f, r * 0.28f, GoldColor, GoldHi, GoldDk)
+        drawLine(GoldDk, Offset(cx, cy + r * 0.1f), Offset(cx, cy + r * 0.35f), r * 0.04f)
     }
 
-    private fun DrawScope.drawRibbonCollar(cx: Float, cy: Float, r: Float, color: Color) {
-        drawLine(color, Offset(cx - r, cy), Offset(cx + r, cy), r * 0.1f)
-        drawBow(cx, cy, r * 0.5f, color)
+    private fun DrawScope.drawRibbonCollar(cx: Float, cy: Float, r: Float) {
+        drawLine(PinkAccent, Offset(cx - r, cy), Offset(cx + r, cy), r * 0.08f)
+        drawBow(cx, cy, r * 0.5f)
     }
 
-    private fun DrawScope.drawScarf(cx: Float, cy: Float, r: Float, color: Color) {
+    private fun DrawScope.drawScarf(cx: Float, cy: Float, r: Float) {
         val path = Path().apply {
             moveTo(cx - r, cy - r * 0.3f)
             lineTo(cx + r, cy - r * 0.3f)
@@ -179,15 +291,20 @@ object OutfitRenderer {
             lineTo(cx - r * 0.8f, cy + r * 0.3f)
             close()
         }
-        drawPath(path, color)
-        drawLine(color.darker(), Offset(cx - r * 0.5f, cy - r * 0.2f), Offset(cx + r * 0.5f, cy - r * 0.2f), r * 0.04f)
+        val g = Brush.linearGradient(
+            colors = listOf(RedHi, RedColor, RedDk),
+            start = Offset(cx, cy - r * 0.3f),
+            end = Offset(cx, cy + r * 0.5f)
+        )
+        drawPath(path, g)
+        drawLine(RedDk, Offset(cx - r * 0.5f, cy - r * 0.2f), Offset(cx + r * 0.5f, cy - r * 0.2f), r * 0.04f)
     }
 
-    private fun DrawScope.drawTailRibbon(cx: Float, cy: Float, r: Float, color: Color) {
-        drawBow(cx, cy, r, color)
+    private fun DrawScope.drawTailRibbon(cx: Float, cy: Float, r: Float) {
+        drawBow(cx, cy, r)
     }
 
-    private fun DrawScope.drawStar(cx: Float, cy: Float, r: Float, color: Color) {
+    private fun DrawScope.drawStar(cx: Float, cy: Float, r: Float) {
         val path = Path()
         for (i in 0..10) {
             val angle = (i * 36.0 - 90.0) * Math.PI / 180.0
@@ -197,18 +314,25 @@ object OutfitRenderer {
             if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
         }
         path.close()
-        drawPath(path, color)
+        val g = Brush.radialGradient(
+            colors = listOf(GoldHi, GoldColor, GoldDk),
+            center = Offset(cx, cy),
+            radius = r
+        )
+        drawPath(path, g)
     }
 
-    private fun DrawScope.drawBalloon(cx: Float, cy: Float, r: Float, color: Color) {
-        drawOval(color, Offset(cx - r * 0.7f, cy - r), Size(r * 1.4f, r * 1.6f))
-        drawLine(color.darker(), Offset(cx, cy + r * 0.6f), Offset(cx, cy + r * 1.5f), r * 0.04f)
+    private fun DrawScope.drawBalloon(cx: Float, cy: Float, r: Float) {
+        val g = Brush.radialGradient(
+            colors = listOf(PinkHi, PinkAccent, PinkDk),
+            center = Offset(cx - r * 0.15f, cy - r * 0.3f),
+            radius = r * 1.2f
+        )
+        drawOval(
+            brush = g,
+            topLeft = Offset(cx - r * 0.7f, cy - r),
+            size = Size(r * 1.4f, r * 1.6f)
+        )
+        drawLine(PinkDk, Offset(cx, cy + r * 0.6f), Offset(cx, cy + r * 1.5f), r * 0.04f)
     }
-
-    private fun Color.darker(factor: Float = 0.7f): Color = Color(
-        red = (red * factor).coerceIn(0f, 1f),
-        green = (green * factor).coerceIn(0f, 1f),
-        blue = (blue * factor).coerceIn(0f, 1f),
-        alpha = alpha
-    )
 }
