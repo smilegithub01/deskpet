@@ -6,11 +6,11 @@ canvas{background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.1)}<
 </head>
 <body>
 <script>
-const BlushColor='rgba(244,167,185,0.6)';
 const EyeColor='#2D2420';
 const SnoutColor='#FF8FAB';
 const WhiskerColor='rgba(85,80,80,0.4)';
 const InnerEarColor='rgba(255,179,200,0.8)';
+const BLUSH_OVAL_W_FACTOR=1.5;
 
 function shade(hex,f){
   let c=hex.replace('#','');let r=parseInt(c.substr(0,2),16),g=parseInt(c.substr(2,2),16),b=parseInt(c.substr(4,2),16);
@@ -24,75 +24,102 @@ function lighten(hex,amt){
 }
 
 function drawWatercolorBlush(ctx,cx,cy,r){
-  ctx.fillStyle='rgba(244,167,185,0.30)';
-  ctx.beginPath();ctx.arc(cx-r*0.1,cy-r*0.1,r*1.4,0,7);ctx.fill();
-  ctx.fillStyle='rgba(244,167,185,0.45)';
-  ctx.beginPath();ctx.arc(cx+r*0.15,cy+r*0.05,r,0,7);ctx.fill();
-  ctx.fillStyle='rgba(244,167,185,0.60)';
-  ctx.beginPath();ctx.arc(cx-r*0.05,cy,r*0.55,0,7);ctx.fill();
+  const w=r*BLUSH_OVAL_W_FACTOR;
+  ctx.fillStyle='rgba(244,167,185,0.25)';ctx.beginPath();ctx.ellipse(cx,cy,w*1.4,r*1.2,0,0,7);ctx.fill();
+  ctx.fillStyle='rgba(244,167,185,0.35)';ctx.beginPath();ctx.ellipse(cx,cy,w,r*0.85,0,0,7);ctx.fill();
+  ctx.fillStyle='rgba(244,167,185,0.50)';ctx.beginPath();ctx.ellipse(cx,cy,w*0.6,r*0.5,0,0,7);ctx.fill();
 }
 
 function drawPet(species,colorHex){
   const canvas=document.createElement('canvas');canvas.width=300;canvas.height=300;
   const ctx=canvas.getContext('2d');
   const w=300,h=300;
-  const body=colorHex,dark=shade(colorHex,0.82),belly=lighten(colorHex,40).replace('rgb(','rgba(').replace(')',',0.55)');
+  const body=colorHex,dark=shade(colorHex,0.82),belly=lighten(colorHex,40);
 
   const bodyCx=w*0.50,bodyCy=h*0.52,bodyHalfW=w*0.42/2,bodyHalfH=h*0.58/2;
   const bodyLeft=bodyCx-bodyHalfW,bodyRight=bodyCx+bodyHalfW,bodyTop=bodyCy-bodyHalfH,bodyBottom=bodyCy+bodyHalfH;
-  const eyeY=h*0.38,leftEyeX=bodyCx-w*0.12,rightEyeX=bodyCx+w*0.12,pupilR=w*0.045;
-  const blushY=h*0.46,blushR=w*0.045;
+  const eyeY=h*0.38,leftEyeX=bodyCx-w*0.12,rightEyeX=bodyCx+w*0.12,pupilR=w*0.058;
+  const blushY=h*0.47,blushR=w*0.050;
   const noseY=h*0.49,noseR=w*0.020,mouthY=h*0.52;
   const pawY=h*0.82,pawW=w*0.055,pawH=h*0.070;
 
+  // Bottom shadow
+  ctx.fillStyle='rgba(0,0,0,0.06)';ctx.beginPath();ctx.ellipse(bodyCx,bodyBottom-h*0.01,bodyHalfW*0.85,h*0.015,0,0,7);ctx.fill();
+
+  // Ears
   if(species==='cat'){
     const halfW=w*0.06,innerHalfW=w*0.03,baseY=h*0.20,tipY=h*0.02,innerTipY=h*0.08;
     let lbx=bodyCx-bodyHalfW*0.45;
-    ctx.fillStyle=body;ctx.beginPath();ctx.moveTo(lbx-halfW,baseY);ctx.lineTo(lbx,tipY);ctx.lineTo(lbx+halfW,baseY);ctx.closePath();ctx.fill();
+    let grad=ctx.createLinearGradient(lbx,tipY,lbx,baseY);grad.addColorStop(0,belly);grad.addColorStop(1,body);
+    ctx.fillStyle=grad;ctx.beginPath();ctx.moveTo(lbx-halfW,baseY);ctx.lineTo(lbx,tipY);ctx.lineTo(lbx+halfW,baseY);ctx.closePath();ctx.fill();
     ctx.fillStyle=InnerEarColor;ctx.beginPath();ctx.moveTo(lbx-innerHalfW*0.6,baseY-h*0.02);ctx.lineTo(lbx,innerTipY);ctx.lineTo(lbx+innerHalfW*0.6,baseY-h*0.02);ctx.closePath();ctx.fill();
     let rbx=bodyCx+bodyHalfW*0.45;
-    ctx.fillStyle=body;ctx.beginPath();ctx.moveTo(rbx-halfW,baseY);ctx.lineTo(rbx,tipY);ctx.lineTo(rbx+halfW,baseY);ctx.closePath();ctx.fill();
+    let grad2=ctx.createLinearGradient(rbx,tipY,rbx,baseY);grad2.addColorStop(0,belly);grad2.addColorStop(1,body);
+    ctx.fillStyle=grad2;ctx.beginPath();ctx.moveTo(rbx-halfW,baseY);ctx.lineTo(rbx,tipY);ctx.lineTo(rbx+halfW,baseY);ctx.closePath();ctx.fill();
     ctx.fillStyle=InnerEarColor;ctx.beginPath();ctx.moveTo(rbx-innerHalfW*0.6,baseY-h*0.02);ctx.lineTo(rbx,innerTipY);ctx.lineTo(rbx+innerHalfW*0.6,baseY-h*0.02);ctx.closePath();ctx.fill();
   } else if(species==='dog'){
     const baseY=h*0.20,tipY=h*0.10;
     let liX=w*0.30,loX=w*0.18,ldX=w*0.14;
-    ctx.fillStyle=dark;ctx.beginPath();ctx.moveTo(liX,baseY);ctx.lineTo(loX,tipY);ctx.lineTo(ldX,baseY+h*0.06);ctx.closePath();ctx.fill();
+    let grad=ctx.createLinearGradient(loX,tipY,ldX,baseY);grad.addColorStop(0,body);grad.addColorStop(1,dark);
+    ctx.fillStyle=grad;ctx.beginPath();ctx.moveTo(liX,baseY);ctx.lineTo(loX,tipY);ctx.lineTo(ldX,baseY+h*0.06);ctx.closePath();ctx.fill();
     ctx.fillStyle=InnerEarColor;ctx.beginPath();ctx.moveTo(liX+w*0.01,baseY-h*0.01);ctx.lineTo(loX+w*0.01,tipY+h*0.01);ctx.lineTo(ldX+w*0.01,baseY+h*0.05);ctx.closePath();ctx.fill();
     let riX=w-w*0.30,roX=w-w*0.18,rdX=w-w*0.14;
-    ctx.fillStyle=dark;ctx.beginPath();ctx.moveTo(riX,baseY);ctx.lineTo(roX,tipY);ctx.lineTo(rdX,baseY+h*0.06);ctx.closePath();ctx.fill();
+    let grad2=ctx.createLinearGradient(roX,tipY,rdX,baseY);grad2.addColorStop(0,body);grad2.addColorStop(1,dark);
+    ctx.fillStyle=grad2;ctx.beginPath();ctx.moveTo(riX,baseY);ctx.lineTo(roX,tipY);ctx.lineTo(rdX,baseY+h*0.06);ctx.closePath();ctx.fill();
     ctx.fillStyle=InnerEarColor;ctx.beginPath();ctx.moveTo(riX-w*0.01,baseY-h*0.01);ctx.lineTo(roX-w*0.01,tipY+h*0.01);ctx.lineTo(rdX-w*0.01,baseY+h*0.05);ctx.closePath();ctx.fill();
   } else if(species==='rabbit'){
     const topY=h*0.00,bottomY=h*0.28,earW=w*0.08,innerEarW=w*0.04;
     let lcx=w*0.33;
-    ctx.fillStyle=body;ctx.beginPath();ctx.ellipse(lcx,topY+(bottomY-topY)/2,earW/2,(bottomY-topY)/2,0,0,7);ctx.fill();
+    let grad=ctx.createLinearGradient(lcx,topY,lcx,bottomY);grad.addColorStop(0,belly);grad.addColorStop(1,body);
+    ctx.fillStyle=grad;ctx.beginPath();ctx.ellipse(lcx,topY+(bottomY-topY)/2,earW/2,(bottomY-topY)/2,0,0,7);ctx.fill();
     ctx.fillStyle=InnerEarColor;ctx.beginPath();ctx.ellipse(lcx,topY+h*0.04+(bottomY-topY)*0.75/2,innerEarW/2,(bottomY-topY)*0.75/2,0,0,7);ctx.fill();
     let rcx=w*0.59;
-    ctx.fillStyle=body;ctx.beginPath();ctx.ellipse(rcx,topY+(bottomY-topY)/2,earW/2,(bottomY-topY)/2,0,0,7);ctx.fill();
+    let grad2=ctx.createLinearGradient(rcx,topY,rcx,bottomY);grad2.addColorStop(0,belly);grad2.addColorStop(1,body);
+    ctx.fillStyle=grad2;ctx.beginPath();ctx.ellipse(rcx,topY+(bottomY-topY)/2,earW/2,(bottomY-topY)/2,0,0,7);ctx.fill();
     ctx.fillStyle=InnerEarColor;ctx.beginPath();ctx.ellipse(rcx,topY+h*0.04+(bottomY-topY)*0.75/2,innerEarW/2,(bottomY-topY)*0.75/2,0,0,7);ctx.fill();
   } else if(species==='hamster'){
     const earY=h*0.18,earR=w*0.060,innerR=w*0.030;
     let lx=bodyCx-bodyHalfW*0.65,rx=bodyCx+bodyHalfW*0.65;
-    ctx.fillStyle=body;ctx.beginPath();ctx.arc(lx,earY,earR,0,7);ctx.fill();
-    ctx.fillStyle=body;ctx.beginPath();ctx.arc(rx,earY,earR,0,7);ctx.fill();
+    let grad=ctx.createRadialGradient(lx,earY-earR*0.3,0,lx,earY,earR);grad.addColorStop(0,belly);grad.addColorStop(1,body);
+    ctx.fillStyle=grad;ctx.beginPath();ctx.arc(lx,earY,earR,0,7);ctx.fill();
+    let grad2=ctx.createRadialGradient(rx,earY-earR*0.3,0,rx,earY,earR);grad2.addColorStop(0,belly);grad2.addColorStop(1,body);
+    ctx.fillStyle=grad2;ctx.beginPath();ctx.arc(rx,earY,earR,0,7);ctx.fill();
     ctx.fillStyle=InnerEarColor;ctx.beginPath();ctx.arc(lx,earY,innerR,0,7);ctx.fill();
     ctx.fillStyle=InnerEarColor;ctx.beginPath();ctx.arc(rx,earY,innerR,0,7);ctx.fill();
   }
 
-  ctx.fillStyle=body;ctx.beginPath();ctx.ellipse(bodyCx,bodyCy,bodyHalfW,bodyHalfH,0,0,7);ctx.fill();
-  let bcx=bodyCx,bcy=h*0.58,bw=w*0.22,bh=h*0.28;
-  ctx.fillStyle=belly;ctx.beginPath();ctx.ellipse(bcx,bcy,bw/2,bh/2,0,0,7);ctx.fill();
+  // Body halo (outer watercolor bleed)
+  ctx.fillStyle=body.replace('rgb','rgba').replace(')',',0.15)');
+  ctx.beginPath();ctx.ellipse(bodyCx,bodyCy,bodyHalfW+w*0.02,bodyHalfH+h*0.015,0,0,7);ctx.fill();
 
+  // Body radial gradient
+  let bgrad=ctx.createRadialGradient(bodyCx,bodyCy-bodyHalfH*0.2,0,bodyCx,bodyCy,bodyHalfH*1.1);
+  bgrad.addColorStop(0,belly);bgrad.addColorStop(1,body);
+  ctx.fillStyle=bgrad;ctx.beginPath();ctx.ellipse(bodyCx,bodyCy,bodyHalfW,bodyHalfH,0,0,7);ctx.fill();
+
+  // Belly patch
+  let bcx=bodyCx,bcy=h*0.58,bw=w*0.22,bh=h*0.28;
+  ctx.fillStyle=belly.replace('rgb','rgba').replace(')',',0.35)');
+  ctx.beginPath();ctx.ellipse(bcx,bcy,bw/2,bh/2,0,0,7);ctx.fill();
+
+  // Blush (oval)
   drawWatercolorBlush(ctx,bodyCx-w*0.14,blushY,blushR);
   drawWatercolorBlush(ctx,bodyCx+w*0.14,blushY,blushR);
 
+  // Eyes (bigger pupils, dual highlights)
   ctx.fillStyle=EyeColor;
   ctx.beginPath();ctx.arc(leftEyeX,eyeY,pupilR,0,7);ctx.fill();
   ctx.beginPath();ctx.arc(rightEyeX,eyeY,pupilR,0,7);ctx.fill();
-  let hlR=w*0.015;
+  let hlR=w*0.022;
   ctx.fillStyle='#fff';
-  ctx.beginPath();ctx.arc(leftEyeX+w*0.018,eyeY-h*0.020,hlR,0,7);ctx.fill();
-  ctx.beginPath();ctx.arc(rightEyeX+w*0.018,eyeY-h*0.020,hlR,0,7);ctx.fill();
+  ctx.beginPath();ctx.arc(leftEyeX+w*0.020,eyeY-h*0.022,hlR,0,7);ctx.fill();
+  ctx.beginPath();ctx.arc(rightEyeX+w*0.020,eyeY-h*0.022,hlR,0,7);ctx.fill();
+  // Secondary highlight
+  ctx.fillStyle='rgba(255,255,255,0.5)';
+  ctx.beginPath();ctx.arc(leftEyeX-w*0.012,eyeY+h*0.012,hlR*0.4,0,7);ctx.fill();
+  ctx.beginPath();ctx.arc(rightEyeX-w*0.012,eyeY+h*0.012,hlR*0.4,0,7);ctx.fill();
 
+  // Snout
   ctx.strokeStyle='#fff';ctx.lineWidth=2.5;ctx.lineCap='round';
   if(species==='cat'){
     ctx.fillStyle=SnoutColor;ctx.beginPath();ctx.moveTo(bodyCx,noseY-noseR);ctx.lineTo(bodyCx-noseR*1.1,noseY+noseR);ctx.lineTo(bodyCx+noseR*1.1,noseY+noseR);ctx.closePath();ctx.fill();
@@ -116,7 +143,8 @@ function drawPet(species,colorHex){
     ctx.beginPath();ctx.moveTo(bodyCx-noseR,mouthY);ctx.lineTo(bodyCx+noseR,mouthY);ctx.stroke();
   }
 
-  ctx.fillStyle=dark.replace('rgb','rgba').replace(')',',0.75)');
+  // Paws
+  ctx.fillStyle=dark.replace('rgb','rgba').replace(')',',0.85)');
   let lpx=bodyLeft+w*0.025,rpx=bodyRight-w*0.025-pawW;
   ctx.beginPath();ctx.ellipse(lpx+pawW/2,pawY+pawH/2,pawW/2,pawH/2,0,0,7);ctx.fill();
   ctx.beginPath();ctx.ellipse(rpx+pawW/2,pawY+pawH/2,pawW/2,pawH/2,0,0,7);ctx.fill();
