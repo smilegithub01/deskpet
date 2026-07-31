@@ -223,7 +223,7 @@ fun PetCanvas(
                 right = a.bodyCx + a.bodyRx * 0.985f,
                 bottom = a.bodyCy + a.bodyRy * 0.985f
             ),
-            color = OutlineColor, width = 1.0f, alpha = 0.35f
+            strokeColor = OutlineColor, width = 1.0f, alpha = 0.35f
         )
 
         // 4. HEAD (watercolor)
@@ -237,7 +237,7 @@ fun PetCanvas(
         drawSoftCircleOutline(
             center = Offset(a.headCx, a.headCy),
             radius = a.headR * 0.985f,
-            color = OutlineColor, width = 0.9f, alpha = 0.35f
+            strokeColor = OutlineColor, width = 0.9f, alpha = 0.35f
         )
 
         // 6. EARS AFTER HEAD (rabbit)
@@ -352,8 +352,10 @@ private fun DrawScope.drawWatercolorBlob(
 
     // Layer 2: body (gradient, soft edge)
     val body = Brush.radialGradient(
-        colors = listOf(hiColor, mainColor, dkColor.copy(alpha = 0.85f), dkColor.copy(alpha = 0f)),
-        stops = listOf(0f, 0.55f, 0.85f, 1.0f),
+        0f to hiColor,
+        0.55f to mainColor,
+        0.85f to dkColor.copy(alpha = 0.85f),
+        1.0f to dkColor.copy(alpha = 0f),
         center = Offset(cx - rx * 0.25f, cy - ry * 0.3f),
         radius = maxR * 1.15f
     )
@@ -459,8 +461,9 @@ private fun DrawScope.drawEye(ex: Float, ey: Float, ew: Float, eh: Float) {
 // ============================================================
 private fun DrawScope.drawBlushBlob(bx: Float, by: Float, br: Float) {
     val g = Brush.radialGradient(
-        colors = listOf(BlushColor.copy(alpha = 0.40f), BlushColor.copy(alpha = 0.18f), BlushColor.copy(alpha = 0f)),
-        stops = listOf(0f, 0.6f, 1f),
+        0f to BlushColor.copy(alpha = 0.40f),
+        0.6f to BlushColor.copy(alpha = 0.18f),
+        1f to BlushColor.copy(alpha = 0f),
         center = Offset(bx, by),
         radius = br * 2.0f
     )
@@ -529,15 +532,15 @@ private fun DrawScope.drawEarsBeforeHead(
                 // Outer ear
                 drawPath(Path().apply {
                     moveTo(cx - earW * 0.5f, earBaseY)
-                    quadTo(cx - earW * 0.18f, earTipY + hr * 0.05f, cx, earTipY)
-                    quadTo(cx + earW * 0.18f, earTipY + hr * 0.05f, cx + earW * 0.5f, earBaseY)
+                    quadraticTo(cx - earW * 0.18f, earTipY + hr * 0.05f, cx, earTipY)
+                    quadraticTo(cx + earW * 0.18f, earTipY + hr * 0.05f, cx + earW * 0.5f, earBaseY)
                     close()
                 }, base)
                 // Inner pink
                 drawPath(Path().apply {
                     moveTo(cx - earW * 0.28f, earBaseY - hr * 0.03f)
-                    quadTo(cx - earW * 0.08f, earInnerTipY, cx + earW * 0.08f, earInnerTipY)
-                    quadTo(cx + earW * 0.28f, earBaseY - hr * 0.03f, cx + earW * 0.28f, earBaseY - hr * 0.03f)
+                    quadraticTo(cx - earW * 0.08f, earInnerTipY, cx + earW * 0.08f, earInnerTipY)
+                    quadraticTo(cx + earW * 0.28f, earBaseY - hr * 0.03f, cx + earW * 0.28f, earBaseY - hr * 0.03f)
                     close()
                 }, InnerEarPink)
             }
@@ -651,7 +654,7 @@ private fun DrawScope.drawCatSnout(a: PetAnchors) {
     // Mouth
     drawPath(Path().apply {
         moveTo(a.headCx - a.noseR * 1.15f, a.mouthY)
-        quadTo(a.headCx, a.mouthY + a.noseR * 0.55f, a.headCx + a.noseR * 1.15f, a.mouthY)
+        quadraticTo(a.headCx, a.mouthY + a.noseR * 0.55f, a.headCx + a.noseR * 1.15f, a.mouthY)
     }, color = OutlineSoft, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.6f, cap = StrokeCap.Round))
     // Whiskers
     strokeWhiskers(a)
@@ -669,7 +672,7 @@ private fun DrawScope.drawDogSnout(a: PetAnchors) {
     // Mouth
     drawPath(Path().apply {
         moveTo(a.headCx - a.noseR * 1.55f, a.mouthY + a.noseR * 0.25f)
-        quadTo(a.headCx, a.mouthY + a.noseR * 1.0f, a.headCx + a.noseR * 1.55f, a.mouthY + a.noseR * 0.25f)
+        quadraticTo(a.headCx, a.mouthY + a.noseR * 1.0f, a.headCx + a.noseR * 1.55f, a.mouthY + a.noseR * 0.25f)
     }, color = OutlineSoft, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.6f, cap = StrokeCap.Round))
 }
 
@@ -687,7 +690,7 @@ private fun DrawScope.drawRabbitSnout(a: PetAnchors) {
     }, color = OutlineSoft, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.6f, cap = StrokeCap.Round))
     drawPath(Path().apply {
         moveTo(a.headCx - a.noseR * 1.15f, a.mouthY)
-        quadTo(a.headCx, a.mouthY + a.noseR * 0.5f, a.headCx + a.noseR * 1.15f, a.mouthY)
+        quadraticTo(a.headCx, a.mouthY + a.noseR * 0.5f, a.headCx + a.noseR * 1.15f, a.mouthY)
     }, color = OutlineSoft, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.6f, cap = StrokeCap.Round))
 }
 
@@ -697,7 +700,7 @@ private fun DrawScope.drawHamsterSnout(a: PetAnchors) {
     // Mouth
     drawPath(Path().apply {
         moveTo(a.headCx - a.noseR, a.mouthY)
-        quadTo(a.headCx, a.mouthY + a.noseR * 0.4f, a.headCx + a.noseR, a.mouthY)
+        quadraticTo(a.headCx, a.mouthY + a.noseR * 0.4f, a.headCx + a.noseR, a.mouthY)
     }, color = OutlineSoft, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f, cap = StrokeCap.Round))
     strokeWhiskers(a)
 }
