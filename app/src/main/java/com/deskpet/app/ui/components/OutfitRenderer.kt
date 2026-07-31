@@ -27,6 +27,30 @@ object OutfitRenderer {
     private val BlueColor = Color(0xFF4FC3F7)
     private val BlueDk = Color(0xFF2896DC)
 
+    // Emoji lookup for all outfit IDs (fallback rendering)
+    private val emojiMap = mapOf(
+        "head_bow" to "🎀", "head_flower" to "🌸", "head_beanie" to "🧢",
+        "head_santa" to "🎅", "head_hat" to "🎩", "head_crown" to "👑",
+        "head_headphone" to "🎧", "head_tophat" to "🎩",
+        "glasses_round" to "👓", "glasses_sun" to "🕶️", "glasses_3d" to "🎞️",
+        "glasses_star" to "🤓", "glasses_monocle" to "🧐",
+        "glasses_party" to "🥳", "glasses_neon" to "😎", "glasses_heart" to "😍",
+        "collar_bell" to "🔔", "collar_bow" to "🎀", "collar_ribbon" to "🎀",
+        "collar_pearl" to "📿", "collar_gold" to "💰", "collar_bone" to "🦴",
+        "collar_crystal" to "💎", "collar_flower" to "🌺",
+        "cloth_scarf" to "🧣", "cloth_sweater" to "👕", "cloth_dress" to "👗",
+        "cloth_cape" to "🧥", "cloth_suit" to "🤵", "cloth_kimono" to "👘",
+        "cloth_swimsuit" to "🩱", "cloth_pajama" to "🩲",
+        "tail_ribbon" to "🎀", "tail_star" to "⭐", "tail_flower" to "🌸",
+        "tail_balloon" to "🎈", "tail_butterfly" to "🦋", "tail_rainbow" to "🌈",
+        "tail_cloud" to "☁️", "tail_heart" to "💕",
+        "acc_balloon" to "🎈", "acc_lollipop" to "🍭", "acc_umbrella" to "☂️",
+        "acc_wand" to "🪄", "acc_book" to "📖", "acc_camera" to "📷",
+        "acc_gift" to "🎁", "acc_star" to "✨"
+    )
+
+    fun getEmoji(outfitId: String): String = emojiMap[outfitId] ?: "⭐"
+
     fun DrawScope.render(
         outfitId: String,
         category: OutfitCategory,
@@ -42,6 +66,9 @@ object OutfitRenderer {
             "head_flower" -> { drawFlower(cx, cy, r); true }
             "head_crown" -> { drawCrown(cx, cy, r); true }
             "head_beanie" -> { drawBeanie(cx, cy, r); true }
+            "head_santa" -> { drawSantaHat(cx, cy, r); true }
+            "head_hat" -> { drawTopHat(cx, cy, r); true }
+            "head_tophat" -> { drawTopHat(cx, cy, r); true }
             "glasses_round" -> { drawRoundGlasses(cx, cy, r); true }
             "glasses_sun" -> { drawSunglasses(cx, cy, r); true }
             "glasses_heart" -> { drawHeartGlasses(cx, cy, r); true }
@@ -212,6 +239,62 @@ object OutfitRenderer {
             size = Size(r * 2, r * 2)
         )
         drawCircle(RedDk, r * 0.12f, Offset(cx, cy - r))
+    }
+
+    private fun DrawScope.drawSantaHat(cx: Float, cy: Float, r: Float) {
+        val g = Brush.linearGradient(
+            colors = listOf(Color.White, Color(0xFFFFF5F5)),
+            start = Offset(cx, cy - r),
+            end = Offset(cx, cy + r * 0.5f)
+        )
+        drawArc(
+            brush = Brush.linearGradient(
+                colors = listOf(RedHi, RedColor, RedDk),
+                start = Offset(cx, cy - r),
+                end = Offset(cx, cy + r * 0.5f)
+            ),
+            startAngle = 180f,
+            sweepAngle = 180f,
+            useCenter = true,
+            topLeft = Offset(cx - r, cy - r * 0.8f),
+            size = Size(r * 2, r * 1.6f)
+        )
+        drawOval(
+            brush = g,
+            topLeft = Offset(cx - r * 1.1f, cy + r * 0.1f),
+            size = Size(r * 2.2f, r * 0.35f)
+        )
+        drawCircle(Color.White, r * 0.22f, Offset(cx + r * 0.6f, cy - r * 0.6f))
+    }
+
+    private fun DrawScope.drawTopHat(cx: Float, cy: Float, r: Float) {
+        val g = Brush.linearGradient(
+            colors = listOf(DarkAccent, Color(0xFF4A4036)),
+            start = Offset(cx, cy - r),
+            end = Offset(cx, cy + r)
+        )
+        drawRoundRect(
+            brush = g,
+            topLeft = Offset(cx - r * 0.6f, cy - r * 0.9f),
+            size = Size(r * 1.2f, r * 1.3f),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(r * 0.1f, r * 0.1f)
+        )
+        drawRoundRect(
+            brush = g,
+            topLeft = Offset(cx - r * 0.95f, cy + r * 0.35f),
+            size = Size(r * 1.9f, r * 0.15f),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(r * 0.05f, r * 0.05f)
+        )
+        drawRoundRect(
+            brush = Brush.linearGradient(
+                colors = listOf(RedHi, RedColor, RedDk),
+                start = Offset(cx, cy),
+                end = Offset(cx, cy + r * 0.2f)
+            ),
+            topLeft = Offset(cx - r * 0.6f, cy + r * 0.15f),
+            size = Size(r * 1.2f, r * 0.12f),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(r * 0.05f, r * 0.05f)
+        )
     }
 
     private fun DrawScope.drawRoundGlasses(cx: Float, cy: Float, r: Float) {

@@ -79,10 +79,10 @@ object PetImageLoader {
     /**
      * Chroma key：将白色背景像素转为透明，保留主体。
      *
-     * 阈值策略（平滑过渡，避免硬边缘锯齿）：
-     * - brightness >= 250（接近纯白）：完全透明
-     * - brightness 225~250：线性渐变 alpha（边缘抗锯齿）
-     * - brightness < 225（主体与浅色毛发）：完全不透明，保留水彩质感
+     * 阈值策略（更激进，适配 AI 生成的水彩图）：
+     * - brightness >= 240（接近纯白）：完全透明
+     * - brightness 200~240：线性渐变 alpha（边缘抗锯齿，同时确保浅灰背景也被抠除）
+     * - brightness < 200（主体与浅色毛发）：完全不透明，保留水彩质感
      */
     private fun chromaKeyWhite(bitmap: Bitmap): Bitmap {
         val result = bitmap.copy(Bitmap.Config.ARGB_8888, true)
@@ -91,8 +91,8 @@ object PetImageLoader {
         val pixels = IntArray(w * h)
         result.getPixels(pixels, 0, w, 0, 0, w, h)
 
-        val highThreshold = 250
-        val lowThreshold = 225
+        val highThreshold = 240
+        val lowThreshold = 200
         val range = (highThreshold - lowThreshold).toFloat()
 
         for (i in pixels.indices) {

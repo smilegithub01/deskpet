@@ -241,13 +241,19 @@ private fun SpeciesStep(
     ) {
         PetSpecies.entries.forEach { s ->
             val isSelected = s == selected
+            val defaultColor = when (s) {
+                PetSpecies.CAT -> PetColor.PINK
+                PetSpecies.DOG -> PetColor.PEACH
+                PetSpecies.RABBIT -> PetColor.BLUE
+                PetSpecies.HAMSTER -> PetColor.MINT
+            }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.clickable { onSelect(s) }
             ) {
                 Box(
                     modifier = Modifier
-                        .size(72.dp)
+                        .size(80.dp)
                         .clip(CircleShape)
                         .background(
                             if (isSelected) MaterialTheme.colorScheme.primaryContainer
@@ -260,7 +266,13 @@ private fun SpeciesStep(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = s.emoji, fontSize = 36.sp)
+                    PetCanvas(
+                        modifier = Modifier.size(64.dp),
+                        color = defaultColor,
+                        species = s,
+                        state = PetState.IDLE,
+                        enableBreath = false
+                    )
                 }
                 Spacer(Modifier.height(8.dp))
                 Text(

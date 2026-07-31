@@ -324,10 +324,11 @@ fun PetCanvas(
                                 OutfitCategory.TAIL -> Triple(a.tailX, a.tailY, 0.13f)
                                 OutfitCategory.ACCESSORY -> Triple(a.bodyLeft - a.headR * 0.15f, a.eyeY, 0.12f)
                             }
+                            val emoji = OutfitRenderer.getEmoji(outfitId)
                             paint.textSize = size.width * sizeFactor
                             val fm = paint.fontMetrics
                             val baseline = cy - (fm.ascent + fm.descent) / 2f
-                            canvas.nativeCanvas.drawText(outfitId, cx, baseline, paint)
+                            canvas.nativeCanvas.drawText(emoji, cx, baseline, paint)
                         }
                     }
                 }
