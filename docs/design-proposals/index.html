@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>小团子宠物设计方案</title>
+<style>
+  body { font-family: -apple-system, "PingFang SC", sans-serif; background: #f5f0eb; margin: 0; padding: 40px 20px; }
+  h1 { text-align: center; color: #4a3f42; }
+  .subtitle { text-align: center; color: #8b7c7f; margin-bottom: 40px; }
+  .proposal { margin-bottom: 60px; background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+  .proposal h2 { color: #4a3f42; margin-top: 0; }
+  .proposal img { width: 100%; border-radius: 12px; display: block; }
+  .proposal .desc { color: #6b5c60; line-height: 1.8; margin-top: 16px; }
+  .tag { display: inline-block; background: #FF8FAB; color: white; padding: 4px 12px; border-radius: 12px; font-size: 13px; margin-right: 8px; }
+  .rec { background: #fff3e0; border-left: 4px solid #ff9800; padding: 12px 16px; border-radius: 4px; margin-top: 16px; }
+</style>
+</head>
+<body>
+  <h1>🐱 小团子宠物设计方案</h1>
+  <p class="subtitle">3 个风格方向，供你选择</p>
+
+  <div class="proposal">
+    <h2>方案 A — 精致立体风</h2>
+    <img src="/docs/design-proposals/style-A-3d-polished.jpg" alt="方案A">
+    <div class="desc">
+      <span class="tag">3D 渲染</span>
+      <span class="tag">光泽质感</span>
+      <span class="tag">高光阴影</span>
+      <br><br>
+      像精致的盲盒公仔，有柔和的光泽和高光。眼睛像玻璃珠一样闪亮，整体非常"萌"。
+      <br><br>
+      <b>优点</b>：视觉冲击强，适合做头像和分享卡片。<br>
+      <b>缺点</b>：Canvas 模拟 3D 光影成本高，120dp 悬浮窗下细节易糊。
+    </div>
+  </div>
+
+  <div class="proposal">
+    <h2>方案 B — 极简扁平风 ⭐ 推荐</h2>
+    <img src="/docs/design-proposals/style-B-flat-minimal.jpg" alt="方案B">
+    <div class="desc">
+      <span class="tag">几何简洁</span>
+      <span class="tag">莫兰迪配色</span>
+      <span class="tag">无渐变</span>
+      <br><br>
+      由简单几何图形组成，干净利落，像北欧风格插画。
+      <br><br>
+      <b>优点</b>：与现有 Canvas 技术完美契合，性能最佳，任意尺寸清晰。<br>
+      <b>缺点</b>：需要通过表情/动作补偿情感温度。
+    </div>
+  </div>
+
+  <div class="proposal">
+    <h2>方案 C — 手绘水彩风</h2>
+    <img src="/docs/design-proposals/style-C-watercolor-storybook.jpg" alt="方案C">
+    <div class="desc">
+      <span class="tag">水彩笔触</span>
+      <span class="tag">绘本感</span>
+      <span class="tag">治愈系</span>
+      <br><br>
+      有水彩笔的笔触和纸张纹理，像温柔的绘本插图。
+      <br><br>
+      <b>优点</b>：最符合"治愈系宠物"的产品定位，情感温度最高。<br>
+      <b>缺点</b>：Canvas 模拟水彩纹理需要 noise 技巧，实现成本中等。
+    </div>
+  </div>
+
+  <div class="proposal">
+    <h2>📋 我的推荐</h2>
+    <div class="rec">
+      <b>推荐方案 B（极简扁平风）</b>，理由：<br>
+      1. 与现有 Canvas 矢量绘制技术栈完全契合<br>
+      2. 120dp 悬浮窗小尺寸下视觉信息密度合适<br>
+      3. 性能开销最低，悬浮窗流畅不卡顿<br>
+      4. 通过动作/表情/服饰叠加可补偿情感温度<br><br>
+      <i>如果你想要治愈感更强，也可以选方案 C，我会用 Canvas noise + 多层透明叠加模拟水彩质感。</i>
+    </div>
+  </div>
+</body>
+</html>
