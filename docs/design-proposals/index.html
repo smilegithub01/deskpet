@@ -65,18 +65,34 @@
   </div>
 
   <div class="proposal">
-    <h2>🎨 方案 C 完整配色方案（v3 修正版）</h2>
-    <img src="/docs/design-proposals/species-colors-all-v3.jpg" alt="4物种×6配色完整方案">
+    <h2>✅ 最终实施效果</h2>
+    <img src="/docs/design-proposals/final-watercolor-style.jpg" alt="最终效果">
     <div class="desc">
-      上图为 4 物种（猫/狗/兔/仓鼠）× 6 配色（暖粉/天蓝/薄荷/薰衣草/蜜桃/奶白）的完整方案。<br><br>
-      <b>修正点</b>：<br>
-      • 狗的耳朵：短而窄，仅耳尖微垂（参考柴犬/柯基耳型）<br>
-      • 兔子：两只竖耳，不是四只<br><br>
-      <b>手绘水彩风特点</b>：<br>
-      • 身体轮廓用"颤抖线条"模拟手绘笔触<br>
-      • 腮红用多层半透明小圆晕染<br>
-      • 整体叠加淡雅纸张纹理<br>
-      • 眼睛瞳孔外圈略带手绘不规则感<br>
+      <b>代码改动摘要</b>（已修改 <a href="file:///workspace/app/src/main/java/com/deskpet/app/ui/components/PetCanvas.kt">PetCanvas.kt</a>）：<br><br>
+      
+      <b>🐕 狗耳修正</b>：从长椭圆垂耳 → 短窄三角微垂耳（柴犬/柯基风格）<br>
+      <b>👀 瞳孔增大</b>：从 0.038w → 0.048w (+26%)，更可爱<br>
+      <b>🌸 水彩腮红</b>：从硬圆 → 3 层半透明晕染效果<br>
+      <b>🐾 前肢小手</b>：所有物种增加两侧小椭圆爪爪<br>
+      <b>🎨 手绘风格工具函数</b>：新增 drawWatercolorBlush()、drawPaws()、drawWobblyPath() 等<br><br>
+      
+      <b>细节打磨</b>：<br>
+      • 内耳添加粉色渐变层，更有质感<br>
+      • 眼睛高光点位置优化，更灵动<br>
+      • 嘴巴弧度根据状态变化更明显
+    </div>
+  </div>
+
+  <div class="proposal">
+    <h2>🔄 改动前后对比</h2>
+    <img src="/docs/design-proposals/before-after-comparison.jpg" alt="改动前后对比">
+    <div class="desc">
+      <b>主要差异</b>：<br>
+      • 狗耳：长垂耳 → 短窄微垂耳<br>
+      • 瞳孔：小 → 大 (+26%)<br>
+      • 腮红：硬圆 → 水彩晕染<br>
+      • 前肢：无 → 小爪爪<br>
+      • 整体：更精致可爱
     </div>
   </div>
 

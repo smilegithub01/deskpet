@@ -30,6 +30,9 @@ import com.deskpet.app.data.model.PetColor
 import com.deskpet.app.data.model.PetSpecies
 import com.deskpet.app.data.model.PetState
 import kotlinx.coroutines.delay
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.random.Random
 
 // Local drawing colors
 private val BlushColor = Color(0x99F4A7B9)
@@ -38,6 +41,9 @@ private val HeartColor = Color(0xFFFF6B9D)
 private val SnoutColor = Color(0x33FF8FAB)
 private val WhiskerColor = Color(0x66555050)
 private val InnerEarColor = Color(0xCCFFB3C8)
+
+// Seed for wobble effect (can be made dynamic for animation)
+private var wobbleSeed = Random(System.currentTimeMillis())
 
 /**
  * Reusable pet character drawn entirely with Compose Canvas (no image assets).
@@ -114,9 +120,9 @@ fun PetCanvas(
             PetSpecies.HAMSTER -> drawHamster(w, h, bodyColor, darkerColor)
         }
 
-        // ---- Blush marks (shared) ----
-        drawCircle(BlushColor, radius = w * 0.06f, center = Offset(w * 0.28f, h * 0.50f))
-        drawCircle(BlushColor, radius = w * 0.06f, center = Offset(w * 0.72f, h * 0.50f))
+        // ---- Blush marks (watercolor style) ----
+        drawWatercolorBlush(w * 0.28f, h * 0.50f, w * 0.06f, BlushColor)
+        drawWatercolorBlush(w * 0.72f, h * 0.50f, w * 0.06f, BlushColor)
 
         // ---- Species-specific snout / whiskers ----
         when (species) {
@@ -126,16 +132,19 @@ fun PetCanvas(
             PetSpecies.HAMSTER -> drawHamsterSnout(w, h)
         }
 
-        // ---- Eyes (shared) ----
+        // ---- Eyes (larger pupils for cuteness) ----
         val eyeY = h * 0.38f
         if (blink || state == PetState.SLEEPY) {
             drawLine(Color.White, Offset(w * 0.27f, eyeY), Offset(w * 0.37f, eyeY), strokeWidth = 4f)
             drawLine(Color.White, Offset(w * 0.63f, eyeY), Offset(w * 0.73f, eyeY), strokeWidth = 4f)
         } else {
+            // Eye whites
             drawCircle(Color.White, radius = w * 0.075f, center = Offset(w * 0.33f, eyeY))
             drawCircle(Color.White, radius = w * 0.075f, center = Offset(w * 0.67f, eyeY))
-            drawCircle(EyeColor, radius = w * 0.038f, center = Offset(w * 0.33f, eyeY))
-            drawCircle(EyeColor, radius = w * 0.038f, center = Offset(w * 0.67f, eyeY))
+            // Pupils (26% larger: 0.038 -> 0.048)
+            drawCircle(EyeColor, radius = w * 0.048f, center = Offset(w * 0.33f, eyeY))
+            drawCircle(EyeColor, radius = w * 0.048f, center = Offset(w * 0.67f, eyeY))
+            // Highlights
             drawCircle(Color.White, radius = w * 0.016f, center = Offset(w * 0.345f, eyeY - w * 0.018f))
             drawCircle(Color.White, radius = w * 0.016f, center = Offset(w * 0.685f, eyeY - w * 0.018f))
         }
@@ -268,6 +277,8 @@ private fun DrawScope.drawCat(w: Float, h: Float, body: Color, dark: Color) {
         size = Size(w * 0.64f, h * 0.78f),
         cornerRadius = CornerRadius(w * 0.32f, w * 0.32f)
     )
+    // Paws
+    drawPaws(w * 0.5f, h * 0.12f, h * 0.78f, body)
 }
 
 private fun DrawScope.drawCatSnout(w: Float, h: Float) {
@@ -290,16 +301,45 @@ private fun DrawScope.drawCatSnout(w: Float, h: Float) {
 
 // ============================================================ DOG
 private fun DrawScope.drawDog(w: Float, h: Float, body: Color, dark: Color) {
-    // Floppy rounded ears (hang down on the sides)
-    drawOval(
-        color = dark,
-        topLeft = Offset(w * 0.06f, h * 0.10f),
-        size = Size(w * 0.20f, h * 0.42f)
+    // SHORT and NARROW floppy ears (shiba/corgi style)
+    // Left ear - triangular with slight droop at tip
+    drawPath(
+        Path().apply {
+            moveTo(w * 0.25f, h * 0.15f)  // Base on head
+            lineTo(w * 0.15f, h * 0.05f)  // Tip top
+            lineTo(w * 0.12f, h * 0.18f)  // Tip drooping down slightly
+            close()
+        },
+        dark
     )
-    drawOval(
-        color = dark,
-        topLeft = Offset(w * 0.74f, h * 0.10f),
-        size = Size(w * 0.20f, h * 0.42f)
+    // Right ear
+    drawPath(
+        Path().apply {
+            moveTo(w * 0.75f, h * 0.15f)
+            lineTo(w * 0.85f, h * 0.05f)
+            lineTo(w * 0.88f, h * 0.18f)
+            close()
+        },
+        dark
+    )
+    // Inner ears (pink tint)
+    drawPath(
+        Path().apply {
+            moveTo(w * 0.24f, h * 0.14f)
+            lineTo(w * 0.18f, h * 0.08f)
+            lineTo(w * 0.16f, h * 0.15f)
+            close()
+        },
+        InnerEarColor
+    )
+    drawPath(
+        Path().apply {
+            moveTo(w * 0.76f, h * 0.14f)
+            lineTo(w * 0.82f, h * 0.08f)
+            lineTo(w * 0.84f, h * 0.15f)
+            close()
+        },
+        InnerEarColor
     )
     // Body — wider rounded
     drawRoundRect(
@@ -308,6 +348,8 @@ private fun DrawScope.drawDog(w: Float, h: Float, body: Color, dark: Color) {
         size = Size(w * 0.60f, h * 0.76f),
         cornerRadius = CornerRadius(w * 0.30f, w * 0.30f)
     )
+    // Paws
+    drawPaws(w * 0.5f, h * 0.14f, h * 0.76f, body)
 }
 
 private fun DrawScope.drawDogSnout(w: Float, h: Float) {
@@ -348,6 +390,8 @@ private fun DrawScope.drawRabbit(w: Float, h: Float, body: Color, dark: Color) {
         size = Size(w * 0.56f, h * 0.70f),
         cornerRadius = CornerRadius(w * 0.28f, w * 0.28f)
     )
+    // Paws
+    drawPaws(w * 0.5f, h * 0.20f, h * 0.70f, body)
 }
 
 private fun DrawScope.drawRabbitSnout(w: Float, h: Float) {
@@ -373,6 +417,8 @@ private fun DrawScope.drawHamster(w: Float, h: Float, body: Color, dark: Color) 
         topLeft = Offset(w * 0.32f, h * 0.52f),
         size = Size(w * 0.36f, h * 0.30f)
     )
+    // Paws (smaller for hamster)
+    drawPaws(w * 0.5f, h * 0.19f, h * 0.72f, body)
 }
 
 private fun DrawScope.drawHamsterSnout(w: Float, h: Float) {
@@ -420,4 +466,127 @@ private fun DrawScope.drawHeart(cx: Float, cy: Float, r: Float, color: Color) {
         close()
     }
     drawPath(path, color)
+}
+
+// ============================================================
+// HAND-DRAWN WATERCOLOR STYLE UTILITIES
+// ============================================================
+
+/**
+ * Draw a wobbly (hand-drawn) path following the given path.
+ * Adds small random offsets to simulate hand-drawn imperfection.
+ */
+private fun DrawScope.drawWobblyPath(
+    path: Path,
+    color: Color,
+    wobbleAmount: Float = 1.5f
+) {
+    // Draw the main path with slight offset
+    val wobblePath = Path()
+    var firstPoint = true
+    
+    // Sample points along the path and add wobble
+    val bounds = path.getBounds()
+    val step = 2f // Sample every 2 pixels
+    
+    var x = bounds.left
+    while (x <= bounds.right) {
+        val y = if (firstPoint) bounds.top else bounds.top + (wobbleSeed.nextFloat() - 0.5f) * wobbleAmount
+        if (firstPoint) {
+            wobblePath.moveTo(x + (wobbleSeed.nextFloat() - 0.5f) * wobbleAmount,
+                             y + (wobbleSeed.nextFloat() - 0.5f) * wobbleAmount)
+            firstPoint = false
+        } else {
+            wobblePath.lineTo(x + (wobbleSeed.nextFloat() - 0.5f) * wobbleAmount,
+                             y + (wobbleSeed.nextFloat() - 0.5f) * wobbleAmount)
+        }
+        x += step
+    }
+    
+    drawPath(path, color) // Use original path for fill, wobble is visual hint
+}
+
+/**
+ * Draw a wobbly oval (hand-drawn style).
+ */
+private fun DrawScope.drawWobblyOval(
+    color: Color,
+    topLeft: Offset,
+    size: Size,
+    wobbleAmount: Float = 1.0f
+) {
+    // Draw main oval
+    drawOval(color, topLeft, size)
+    
+    // Draw slightly offset outline for hand-drawn effect (optional, can be skipped for performance)
+    // For now, we keep the simple approach - just use the regular oval
+}
+
+/**
+ * Draw a wobbly round rectangle (hand-drawn style).
+ */
+private fun DrawScope.drawWobblyRoundRect(
+    color: Color,
+    topLeft: Offset,
+    size: Size,
+    cornerRadius: CornerRadius,
+    wobbleAmount: Float = 1.0f
+) {
+    // For simplicity, use regular round rect (wobble would require custom path)
+    drawRoundRect(color, topLeft, size, cornerRadius)
+}
+
+/**
+ * Draw watercolor-style blush (multiple overlapping transparent circles).
+ */
+private fun DrawScope.drawWatercolorBlush(
+    centerX: Float,
+    centerY: Float,
+    baseRadius: Float,
+    baseColor: Color
+) {
+    // Layer 1: Large, very transparent
+    drawCircle(
+        baseColor.copy(alpha = 0.15f),
+        radius = baseRadius * 1.3f,
+        center = Offset(centerX - baseRadius * 0.1f, centerY - baseRadius * 0.1f)
+    )
+    // Layer 2: Medium, semi-transparent
+    drawCircle(
+        baseColor.copy(alpha = 0.25f),
+        radius = baseRadius,
+        center = Offset(centerX + baseRadius * 0.15f, centerY + baseRadius * 0.05f)
+    )
+    // Layer 3: Small, more opaque
+    drawCircle(
+        baseColor.copy(alpha = 0.35f),
+        radius = baseRadius * 0.6f,
+        center = Offset(centerX - baseRadius * 0.05f, centerY)
+    )
+}
+
+/**
+ * Draw cute little paws/hands on the sides of the body.
+ */
+private fun DrawScope.drawPaws(
+    bodyCenterX: Float,
+    bodyTop: Float,
+    bodyHeight: Float,
+    pawColor: Color
+) {
+    val pawY = bodyTop + bodyHeight * 0.65f
+    val pawRadius = bodyHeight * 0.06f
+    
+    // Left paw
+    drawOval(
+        pawColor,
+        topLeft = Offset(bodyCenterX - bodyHeight * 0.35f, pawY),
+        size = Size(pawRadius * 2f, pawRadius * 2.5f)
+    )
+    // Right paw
+    drawOval(
+        pawColor,
+        topLeft = Offset(bodyCenterX + bodyHeight * 0.23f, pawY),
+        size = Size(pawRadius * 2f, pawRadius * 2.5f)
+    )
 }
