@@ -3,6 +3,7 @@ package com.deskpet.app.data.repository
 import android.content.Context
 import android.content.SharedPreferences
 import com.deskpet.app.data.db.AppDatabase
+import com.deskpet.app.data.model.CompanionLink
 import com.deskpet.app.data.model.FurnitureCategory
 import com.deskpet.app.data.model.FurnitureItem
 import com.deskpet.app.data.model.HabitStreak
@@ -43,6 +44,7 @@ class PetRepository private constructor(
     private val habitStreakDao = database.habitStreakDao()
     private val interactionLogDao = database.interactionLogDao()
     private val roomLayoutDao = database.roomLayoutDao()
+    private val companionLinkDao = database.companionLinkDao()
 
     private val prefs: SharedPreferences =
         context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -192,6 +194,121 @@ class PetRepository private constructor(
             }
         }
         persistPet()
+    }
+
+    // ----------------------------------------------------------- Companion (Co-Parenting)
+
+    /** Active companion link, observed by UI. */
+    val activeCompanion: StateFlow<CompanionLink?> =
+        companionLinkDao.getActiveLink().stateIn(
+            scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO),
+            started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000),
+            initialValue = null
+        )
+
+    /**
+     * Generates a 6-uppercase-letter pair code representing the current owner,
+     * saves a pending [CompanionLink] to DB and returns the code.
+     *
+     * The returned code can be shared with a partner. When they call
+     * [acceptPairCode] with the same code, the link becomes [CompanionLink.isActive].
+     */
+    suspend fun generatePairCode(): String {
+        // Use letters only (no ambiguous O/0), uppercase for easy sharing
+        val alphabet = ('A'..'Z').filterNot { it in listOf('O', 'I') }
+        val code = buildString {
+            repeat(6) { append(alphabet.random()) }
+        }
+        val pet = _petState.value
+        companionLinkDao.insert(
+            CompanionLink(
+                pairCode = code,
+                ownerId = "local_owner",
+                partnerName = "",
+                petName = pet.name,
+                petSpecies = pet.species.name,
+                petColor = pet.color.name,
+                petLevel = pet.level,
+                petMood = pet.mood,
+                lastUpdate = System.currentTimeMillis(),
+                isActive = false
+            )
+        )
+        return code
+    }
+
+    /**
+     * Accepts a partner's pair code and creates an active co-parenting link.
+     *
+     * For offline/local MVP, acceptance auto-creates a fictitious partner pet
+     * so the UI can render co-parent cards without a backend. In a full cloud
+     * integration the partner's data would be pulled from AGC Cloud DB.
+     *
+     * Returns `true` on success. Returns `false` if the code is malformed or
+     * an active link already exists.
+     */
+    suspend fun acceptPairCode(code: String): Boolean {
+        val trimmed = code.uppercase().trim()
+        if (trimmed.length < 4) return false
+        if (activeCompanion.value?.isActive == true) return false
+
+        val pet = _petState.value
+        // Create an auto-matching partner with a complementary randomized species/color.
+        val partnerSpecies = listOf(
+            com.deskpet.app.data.model.PetSpecies.CAT,
+            com.deskpet.app.data.model.PetSpecies.DOG,
+            com.deskpet.app.data.model.PetSpecies.RABBIT,
+            com.deskpet.app.data.model.PetSpecies.HAMSTER
+        ).filterNot { it == pet.species }.random()
+        val partnerColor = com.deskpet.app.data.model.PetColor.entries.filterNot { it == pet.color }.random()
+        val partnerNames = listOf("豆豆", "奶糖", "团子", "布丁", "茉莉", "小熊")
+
+        companionLinkDao.insert(
+            CompanionLink(
+                pairCode = trimmed,
+                ownerId = "local_owner",
+                partnerName = partnerNames.random(),
+                petName = "${pet.name}的小伙伴",
+                petSpecies = partnerSpecies.name,
+                petColor = partnerColor.name,
+                petLevel = (pet.level + (0..3).random()).coerceAtLeast(1),
+                petMood = (60..90).random(),
+                lastUpdate = System.currentTimeMillis(),
+                isActive = true
+            )
+        )
+        return true
+    }
+
+    /** Breaks the current active companion link (no-op if none). */
+    suspend fun breakCompanionLink() {
+        activeCompanion.value?.let {
+            companionLinkDao.deactivate(it.pairCode)
+        }
+    }
+
+    /**
+     * Sends a snack gift to the partner. As the local MVP simulates the
+     * partner, we record the interaction and give *both* sides a tiny mood
+     * reward to make the action feel rewarding.
+     *
+     * Returns a human-readable summary for toast display.
+     */
+    suspend fun sendCompanionGift(): String {
+        val link = activeCompanion.value
+            ?: return "还没有共同养育搭档~"
+        val gift = listOf("🍬 小零食", "🍪 小饼干", "🧃 果汁", "🍡 串串香", "🎈 气球").random()
+        interactionLogDao.insert(
+            InteractionLog(
+                type = InteractionType.COMPANION_GIFT.name,
+                timestamp = System.currentTimeMillis(),
+                detail = "to:${link.partnerName}|gift:$gift"
+            )
+        )
+        updateMood(3)
+        // Refresh the link timestamp so "最近互动" updates
+        companionLinkDao.insert(link.copy(lastUpdate = System.currentTimeMillis()))
+        return "已给 ${link.partnerName} 送了 $gift, ${link.petName} 也开心了一下~"
     }
 
     // ------------------------------------------------------------- Settings

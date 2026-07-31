@@ -128,7 +128,12 @@ fun PetHomeScreen(
             Spacer(Modifier.height(12.dp))
 
             // ---- Pet stage ----
-            val stageOutfits = remember(pet) {
+            // Use individual equip fields as remember keys so the wardrobe
+            // overlay updates as soon as the user equips / unequips items.
+            val stageOutfits = remember(
+                pet.equippedHead, pet.equippedGlasses, pet.equippedCollar,
+                pet.equippedClothing, pet.equippedTail, pet.equippedAccessory
+            ) {
                 pet.equippedOutfitIds(DeskPetApplication.get().repository.getOutfitItems())
             }
             Box(contentAlignment = Alignment.TopCenter) {

@@ -119,7 +119,12 @@ fun DressUpScreen() {
             Spacer(Modifier.height(12.dp))
 
             // ---- Pet preview ----
-            val previewOutfits = remember(pet) {
+            // Use individual equip fields as remember keys so the preview
+            // updates immediately when the user taps equip / unequip.
+            val previewOutfits = remember(
+                pet.equippedHead, pet.equippedGlasses, pet.equippedCollar,
+                pet.equippedClothing, pet.equippedTail, pet.equippedAccessory
+            ) {
                 pet.equippedOutfitIds(repository.getOutfitItems())
             }
             DressUpPreview(color = pet.color, species = pet.species, outfits = previewOutfits)

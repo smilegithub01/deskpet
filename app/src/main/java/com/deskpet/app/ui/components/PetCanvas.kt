@@ -309,11 +309,14 @@ fun PetCanvas(
 
         // 上层：装扮叠加层（始终渲染，图片/矢量模式都生效）
         if (outfits.isNotEmpty()) {
-            Canvas(modifier = Modifier.graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-                translationY = if (state == PetState.HAPPY || state == PetState.EXCITED) -6f else 0f
-            }) {
+            Canvas(modifier = Modifier
+                .matchParentSize()
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                    translationY = if (state == PetState.HAPPY || state == PetState.EXCITED) -6f else 0f
+                }
+            ) {
                 val a = PetAnchors(size.width, size.height)
                 outfits.forEach { (category, outfitId) ->
                     val rendered = with(OutfitRenderer) {
