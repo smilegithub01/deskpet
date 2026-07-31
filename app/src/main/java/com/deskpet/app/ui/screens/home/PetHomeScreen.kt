@@ -142,7 +142,7 @@ fun PetHomeScreen(
                     onClick = { viewModel.onPetClicked() }
                 )
                 // Golden heart overlay when all habits are checked in today.
-                AnimatedVisibility(
+                androidx.compose.animation.AnimatedVisibility(
                     visible = showGoldenHeart,
                     enter = fadeIn(),
                     exit = fadeOut()
