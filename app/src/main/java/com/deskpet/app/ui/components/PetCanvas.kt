@@ -8,6 +8,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -26,6 +27,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import com.deskpet.app.data.model.OutfitCategory
 import com.deskpet.app.data.model.PetColor
 import com.deskpet.app.data.model.PetSpecies
@@ -207,6 +210,24 @@ fun PetCanvas(
         else -> breathScale
     }
 
+    // 行业方案：图片资源优先，代码做轻量动效；无图时走矢量 fallback
+    val context = LocalContext.current
+    val petBitmap = remember(species, color) {
+        PetImageLoader.loadPetBitmap(context, species, color)
+    }
+
+    if (petBitmap != null) {
+        Image(
+            bitmap = petBitmap,
+            contentDescription = "桌宠",
+            modifier = modifier.graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                translationY = if (state == PetState.HAPPY || state == PetState.EXCITED) -6f else 0f
+            },
+            contentScale = ContentScale.Fit
+        )
+    } else {
     Canvas(
         modifier = modifier.graphicsLayer {
             scaleX = scale
@@ -321,6 +342,7 @@ fun PetCanvas(
             }
         }
     }
+    } // else vector fallback
 }
 
 // ============================================================
