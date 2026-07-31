@@ -532,15 +532,15 @@ private fun DrawScope.drawEarsBeforeHead(
                 // Outer ear
                 drawPath(Path().apply {
                     moveTo(cx - earW * 0.5f, earBaseY)
-                    quadraticTo(cx - earW * 0.18f, earTipY + hr * 0.05f, cx, earTipY)
-                    quadraticTo(cx + earW * 0.18f, earTipY + hr * 0.05f, cx + earW * 0.5f, earBaseY)
+                    cubicTo(cx - earW * 0.18f, earTipY + hr * 0.05f, cx - earW * 0.18f, earTipY + hr * 0.05f, cx, earTipY)
+                    cubicTo(cx + earW * 0.18f, earTipY + hr * 0.05f, cx + earW * 0.18f, earTipY + hr * 0.05f, cx + earW * 0.5f, earBaseY)
                     close()
                 }, base)
                 // Inner pink
                 drawPath(Path().apply {
                     moveTo(cx - earW * 0.28f, earBaseY - hr * 0.03f)
-                    quadraticTo(cx - earW * 0.08f, earInnerTipY, cx + earW * 0.08f, earInnerTipY)
-                    quadraticTo(cx + earW * 0.28f, earBaseY - hr * 0.03f, cx + earW * 0.28f, earBaseY - hr * 0.03f)
+                    cubicTo(cx - earW * 0.08f, earInnerTipY, cx - earW * 0.08f, earInnerTipY, cx + earW * 0.08f, earInnerTipY)
+                    cubicTo(cx + earW * 0.28f, earBaseY - hr * 0.03f, cx + earW * 0.28f, earBaseY - hr * 0.03f, cx + earW * 0.28f, earBaseY - hr * 0.03f)
                     close()
                 }, InnerEarPink)
             }
@@ -654,7 +654,7 @@ private fun DrawScope.drawCatSnout(a: PetAnchors) {
     // Mouth
     drawPath(Path().apply {
         moveTo(a.headCx - a.noseR * 1.15f, a.mouthY)
-        quadraticTo(a.headCx, a.mouthY + a.noseR * 0.55f, a.headCx + a.noseR * 1.15f, a.mouthY)
+        cubicTo(a.headCx, a.mouthY + a.noseR * 0.55f, a.headCx, a.mouthY + a.noseR * 0.55f, a.headCx + a.noseR * 1.15f, a.mouthY)
     }, color = OutlineSoft, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.6f, cap = StrokeCap.Round))
     // Whiskers
     strokeWhiskers(a)
@@ -672,7 +672,7 @@ private fun DrawScope.drawDogSnout(a: PetAnchors) {
     // Mouth
     drawPath(Path().apply {
         moveTo(a.headCx - a.noseR * 1.55f, a.mouthY + a.noseR * 0.25f)
-        quadraticTo(a.headCx, a.mouthY + a.noseR * 1.0f, a.headCx + a.noseR * 1.55f, a.mouthY + a.noseR * 0.25f)
+        cubicTo(a.headCx, a.mouthY + a.noseR * 1.0f, a.headCx, a.mouthY + a.noseR * 1.0f, a.headCx + a.noseR * 1.55f, a.mouthY + a.noseR * 0.25f)
     }, color = OutlineSoft, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.6f, cap = StrokeCap.Round))
 }
 
@@ -690,7 +690,7 @@ private fun DrawScope.drawRabbitSnout(a: PetAnchors) {
     }, color = OutlineSoft, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.6f, cap = StrokeCap.Round))
     drawPath(Path().apply {
         moveTo(a.headCx - a.noseR * 1.15f, a.mouthY)
-        quadraticTo(a.headCx, a.mouthY + a.noseR * 0.5f, a.headCx + a.noseR * 1.15f, a.mouthY)
+        cubicTo(a.headCx, a.mouthY + a.noseR * 0.5f, a.headCx, a.mouthY + a.noseR * 0.5f, a.headCx + a.noseR * 1.15f, a.mouthY)
     }, color = OutlineSoft, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.6f, cap = StrokeCap.Round))
 }
 
@@ -700,7 +700,7 @@ private fun DrawScope.drawHamsterSnout(a: PetAnchors) {
     // Mouth
     drawPath(Path().apply {
         moveTo(a.headCx - a.noseR, a.mouthY)
-        quadraticTo(a.headCx, a.mouthY + a.noseR * 0.4f, a.headCx + a.noseR, a.mouthY)
+        cubicTo(a.headCx, a.mouthY + a.noseR * 0.4f, a.headCx, a.mouthY + a.noseR * 0.4f, a.headCx + a.noseR, a.mouthY)
     }, color = OutlineSoft, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f, cap = StrokeCap.Round))
     strokeWhiskers(a)
 }
