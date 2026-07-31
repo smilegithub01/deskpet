@@ -1,234 +1,501 @@
 <!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"><title>Pet Preview v4 - Sitting Pose</title>
-<style>body{margin:0;background:#f5f0e8;display:flex;flex-wrap:wrap;justify-content:center;gap:16px;padding:16px}
-canvas{background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.1)}</style>
+<head>
+<meta charset="utf-8">
+<title>Pet Preview v10 - Watercolor Final Match</title>
+<style>
+  body{margin:0;background:linear-gradient(180deg,#fbf5ef 0%,#f3e9de 100%);display:flex;flex-wrap:wrap;justify-content:center;gap:16px;padding:24px;min-height:100vh}
+  canvas{background:transparent;display:block}
+  .label{text-align:center;margin-top:10px;color:#b79a82;font-family:'PingFang SC','Microsoft YaHei',sans-serif;font-size:14px;letter-spacing:2px}
+  .frame{display:flex;flex-direction:column;align-items:center}
+</style>
 </head>
 <body>
 <script>
-const EyeColor='#2D2420';
-const SnoutColor='#FF8FAB';
-const WhiskerColor='rgba(85,80,80,0.4)';
-const InnerEarColor='rgba(255,179,200,0.8)';
-const BLUSH_OVAL_W_FACTOR=1.6;
+// ================================================================
+// v10 — 严格对照 final-watercolor-style 设计图
+// 核心修正：
+//  1. 多层半透明水彩叠加 —— 柔和边缘、渗透感
+//  2. 耳朵更贴近设计图（位置/形状/大小）
+//  3. 眼睛：更小、椭圆、淡粉高光（非纯白）
+//  4. 身体更圆，头身比例更准
+//  5. 每只脚的粉垫更明显
+// ================================================================
+
+const W = 320, H = 320;
 
 function shade(hex,f){
-  let c=hex.replace('#','');let r=parseInt(c.substr(0,2),16),g=parseInt(c.substr(2,2),16),b=parseInt(c.substr(4,2),16);
-  r=Math.min(255,Math.max(0,Math.round(r*f)));g=Math.min(255,Math.max(0,Math.round(g*f)));b=Math.min(255,Math.max(0,Math.round(b*f)));
-  return `rgb(${r},${g},${b})`;
+  let c=hex.replace('#','');
+  let r=parseInt(c.substr(0,2),16),g=parseInt(c.substr(2,2),16),b=parseInt(c.substr(4,2),16);
+  r=Math.min(255,Math.max(0,Math.round(r*f)));
+  g=Math.min(255,Math.max(0,Math.round(g*f)));
+  b=Math.min(255,Math.max(0,Math.round(b*f)));
+  return [r,g,b];
 }
-function lighten(hex,amt){
-  let c=hex.replace('#','');let r=parseInt(c.substr(0,2),16),g=parseInt(c.substr(2,2),16),b=parseInt(c.substr(4,2),16);
-  r=Math.min(255,Math.round(r+amt));g=Math.min(255,Math.round(g+amt));b=Math.min(255,Math.round(b+amt));
-  return `rgb(${r},${g},${b})`;
-}
+function rgba(arr,a){return `rgba(${arr[0]},${arr[1]},${arr[2]},${a})`;}
 
-function drawWatercolorBlush(ctx,cx,cy,r){
-  const w=r*BLUSH_OVAL_W_FACTOR;
-  ctx.fillStyle='rgba(244,167,185,0.22)';ctx.beginPath();ctx.ellipse(cx,cy,w*1.4,r*1.2,0,0,7);ctx.fill();
-  ctx.fillStyle='rgba(244,167,185,0.35)';ctx.beginPath();ctx.ellipse(cx,cy,w,r*0.85,0,0,7);ctx.fill();
-  ctx.fillStyle='rgba(244,167,185,0.50)';ctx.beginPath();ctx.ellipse(cx,cy,w*0.6,r*0.5,0,0,7);ctx.fill();
-}
+function drawWatercolorPet(species, color){
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
 
-function drawPet(species,colorHex){
-  const canvas=document.createElement('canvas');canvas.width=300;canvas.height=300;
-  const ctx=canvas.getContext('2d');
-  const w=300,h=300;
-  const bodyColor=colorHex,dark=shade(colorHex,0.82),belly=lighten(colorHex,40);
+  // === 色板（更柔和透明 —— 水彩质感）===
+  const base    = shade(color, 1.0);
+  const dark    = shade(color, 0.80);
+  const mid     = shade(color, 0.95);
+  const light   = shade(color, 1.12);
+  const lighter = shade(color, 1.24);
+  const outline = [110, 85, 70];
+  const pink    = [255, 185, 200];
+  const blush   = [244, 175, 195];
+  const eyeDark = [45, 32, 28];
 
-  // HEAD
-  const headCx=w*0.50,headCy=h*0.35,headR=w*0.153;
+  // ================================================================
+  // 锚点（320x320 画布比例）
+  // ================================================================
+  const cx = W * 0.50;
 
-  // BODY (rounded rect)
-  const bodyCx=w*0.50,bodyCy=h*0.633;
-  const bodyHalfW=w*0.533/2,bodyHalfH=h*0.453/2;
-  const bodyW=w*0.533,bodyH=h*0.453;
-  const bodyLeft=bodyCx-bodyHalfW,bodyRight=bodyCx+bodyHalfW;
-  const bodyTop=bodyCy-bodyHalfH,bodyBottom=bodyCy+bodyHalfH;
-  const bodyCorner=w*0.12;
+  // 身体：圆，略扁（坐姿圆滚身）
+  const bodyCx = cx;
+  const bodyCy = H * 0.73;
+  const bodyRx = W * 0.26;
+  const bodyRy = H * 0.22;
+  const bodyTop = bodyCy - bodyRy;
+  const bodyBottom = bodyCy + bodyRy;
 
-  // EYES
-  const eyeY=headCy+headR*-0.22;
-  const leftEyeX=headCx-headR*0.40,rightEyeX=headCx+headR*0.40;
-  const pupilR=w*0.060;
+  // 头：圆，与身体等宽/略宽
+  const headCx = cx;
+  const headCy = H * 0.39;
+  const headR  = W * 0.235;
 
-  // BLUSH
-  const blushY=headCy+headR*0.28;
-  const blushR=w*0.053;
+  // 眼（椭圆，占头宽 1/4 左右，偏下方）
+  const eyeY   = headCy + headR * 0.14;
+  const eyeLx  = headCx - headR * 0.42;
+  const eyeRx  = headCx + headR * 0.42;
+  const eyeW   = headR * 0.24;
+  const eyeH   = headR * 0.28;
 
-  // NOSE & MOUTH
-  const noseY=headCy+headR*0.35;
-  const noseR=w*0.018;
-  const mouthY=headCy+headR*0.50;
+  // 腮红（非常淡）
+  const blushY = headCy + headR * 0.42;
+  const blushR = headR * 0.20;
 
-  // FRONT PAWS
-  const pawW=w*0.075,pawH=h*0.090;
-  const leftPawX=bodyCx-bodyHalfW*0.35,rightPawX=bodyCx+bodyHalfW*0.35;
-  const pawY=bodyCy+bodyHalfH*-0.30;
+  // 鼻
+  const noseY  = headCy + headR * 0.52;
+  const noseR  = headR * 0.075;
+  const mouthY = headCy + headR * 0.66;
 
-  // BACK FEET
-  const footR=w*0.067;
-  const leftFootX=bodyCx-bodyHalfW*0.52,rightFootX=bodyCx+bodyHalfW*0.52;
-  const footY=bodyBottom;
+  // 前爪
+  const pawR   = headR * 0.13;
+  const pawY   = bodyBottom - bodyRy * 0.10;
+  const pawLx  = bodyCx - bodyRx * 0.48;
+  const pawRx  = bodyCx + bodyRx * 0.48;
 
-  // BELLY
-  const bellyCx=bodyCx,bellyCy=bodyCy;
-  const bellyW=w*0.28,bellyH=h*0.20;
+  // 后腿
+  const footR  = headR * 0.15;
+  const footY  = bodyBottom;
+  const footLx = bodyCx - bodyRx * 0.68;
+  const footRx = bodyCx + bodyRx * 0.68;
 
-  // ==== DRAW ====
-  // Shadow
-  ctx.fillStyle='rgba(0,0,0,0.04)';
-  ctx.beginPath();ctx.ellipse(bodyCx,bodyBottom-h*0.01,bodyHalfW*0.85,h*0.01,0,0,7);ctx.fill();
+  // ================================================================
+  // 绘制原语（多层水彩叠加）
+  // ================================================================
 
-  // Back feet
-  function drawFoot(cx,cy,r){
-    let g=ctx.createRadialGradient(cx,cy-r*0.3,0,cx,cy,r*1.1);
-    g.addColorStop(0,'rgba('+dark.replace('rgb(','').replace(')','')+',0.85)');g.addColorStop(1,dark);
-    ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,r,0,7);ctx.fill();
-  }
-  drawFoot(leftFootX,footY,footR);
-  drawFoot(rightFootX,footY,footR);
+  // 水彩圆形（多层叠加 —— 先晕染，再主体，再高光）
+  function paintWatercolorBlob(cx, cy, rx, ry, mainColor, hiColor, dkColor){
+    // 第 1 层：大范围柔和晕染（very transparent）
+    const halo = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(rx, ry) * 1.8);
+    halo.addColorStop(0, rgba(mainColor, 0.08));
+    halo.addColorStop(1, rgba(mainColor, 0));
+    ctx.fillStyle = halo;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx * 1.7, ry * 1.7, 0, 0, Math.PI * 2);
+    ctx.fill();
 
-  // Body (rounded rect with radial gradient)
-  let bgrad=ctx.createRadialGradient(bodyCx,bodyCy-bodyHalfH*0.2,0,bodyCx,bodyCy,bodyHalfH*1.3);
-  bgrad.addColorStop(0,belly);bgrad.addColorStop(1,bodyColor);
-  ctx.fillStyle=bgrad;
-  roundRect(ctx,bodyLeft,bodyTop,bodyW,bodyH,bodyCorner);
-  ctx.fill();
+    // 第 2 层：主体（渐变填充 —— 更透明边缘）
+    const g = ctx.createRadialGradient(cx - rx * 0.25, cy - ry * 0.3, 0, cx, cy, Math.max(rx, ry) * 1.15);
+    g.addColorStop(0, rgba(hiColor, 1));
+    g.addColorStop(0.55, rgba(mainColor, 1));
+    g.addColorStop(0.85, rgba(dkColor, 0.85));
+    g.addColorStop(1, rgba(dkColor, 0));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fill();
 
-  // Belly patch
-  let bcgrad=ctx.createRadialGradient(bellyCx,bellyCy,0,bellyCx,bellyCy,bodyHalfW*0.45);
-  bcgrad.addColorStop(0,'rgba('+belly.replace('rgb(','').replace(')','')+',0.7)');
-  bcgrad.addColorStop(1,'rgba('+belly.replace('rgb(','').replace(')','')+',0.15)');
-  ctx.fillStyle=bcgrad;ctx.beginPath();ctx.ellipse(bellyCx,bellyCy,bellyW/2,bellyH/2,0,0,7);ctx.fill();
-
-  // Ears
-  if(species==='cat'){
-    const halfW=headR*0.28,innerHalfW=headR*0.14;
-    const baseY=headCy-headR*0.70,tipY=headCy-headR*1.35,innerTipY=headCy-headR*1.05;
-    let lbcx=headCx-headR*0.55;
-    let grad=ctx.createRadialGradient(lbcx,tipY,0,lbcx,tipY,headR*0.7);grad.addColorStop(0,belly);grad.addColorStop(1,bodyColor);
-    ctx.fillStyle=grad;ctx.beginPath();ctx.moveTo(lbcx-halfW,baseY);ctx.lineTo(lbcx,tipY);ctx.lineTo(lbcx+halfW,baseY);ctx.closePath();ctx.fill();
-    ctx.fillStyle=InnerEarColor;ctx.beginPath();ctx.moveTo(lbcx-innerHalfW*0.6,baseY-headR*0.08);ctx.lineTo(lbcx,innerTipY);ctx.lineTo(lbcx+innerHalfW*0.6,baseY-headR*0.08);ctx.closePath();ctx.fill();
-    let rbcx=headCx+headR*0.55;
-    let grad2=ctx.createRadialGradient(rbcx,tipY,0,rbcx,tipY,headR*0.7);grad2.addColorStop(0,belly);grad2.addColorStop(1,bodyColor);
-    ctx.fillStyle=grad2;ctx.beginPath();ctx.moveTo(rbcx-halfW,baseY);ctx.lineTo(rbcx,tipY);ctx.lineTo(rbcx+halfW,baseY);ctx.closePath();ctx.fill();
-    ctx.fillStyle=InnerEarColor;ctx.beginPath();ctx.moveTo(rbcx-innerHalfW*0.6,baseY-headR*0.08);ctx.lineTo(rbcx,innerTipY);ctx.lineTo(rbcx+innerHalfW*0.6,baseY-headR*0.08);ctx.closePath();ctx.fill();
-  } else if(species==='dog'){
-    const baseY=headCy-headR*0.60,tipY=headCy-headR*1.10;
-    const liX=headCx-headR*0.70,loX=headCx-headR*1.10,ldX=headCx-headR*1.30;
-    let grad=ctx.createRadialGradient(loX,tipY,0,loX,tipY,headR*0.8);grad.addColorStop(0,bodyColor);grad.addColorStop(1,dark);
-    ctx.fillStyle=grad;ctx.beginPath();ctx.moveTo(liX,baseY);ctx.lineTo(loX,tipY);ctx.lineTo(ldX,baseY+headR*0.28);ctx.closePath();ctx.fill();
-    ctx.fillStyle=InnerEarColor;ctx.beginPath();ctx.moveTo(liX+headR*0.04,baseY-headR*0.04);ctx.lineTo(loX+headR*0.04,tipY+headR*0.04);ctx.lineTo(ldX+headR*0.04,baseY+headR*0.24);ctx.closePath();ctx.fill();
-    const riX=headCx+headR*0.70,roX=headCx+headR*1.10,rdX=headCx+headR*1.30;
-    let grad2=ctx.createRadialGradient(roX,tipY,0,roX,tipY,headR*0.8);grad2.addColorStop(0,bodyColor);grad2.addColorStop(1,dark);
-    ctx.fillStyle=grad2;ctx.beginPath();ctx.moveTo(riX,baseY);ctx.lineTo(roX,tipY);ctx.lineTo(rdX,baseY+headR*0.28);ctx.closePath();ctx.fill();
-    ctx.fillStyle=InnerEarColor;ctx.beginPath();ctx.moveTo(riX-headR*0.04,baseY-headR*0.04);ctx.lineTo(roX-headR*0.04,tipY+headR*0.04);ctx.lineTo(rdX-headR*0.04,baseY+headR*0.24);ctx.closePath();ctx.fill();
-  } else if(species==='rabbit'){
-    const earH=headR*1.35,earW=headR*0.36,innerEarW=earW*0.55;
-    const topY=headCy-headR*1.20,bottomY=headCy-headR*0.05;
-    const lcx=headCx-headR*0.42;
-    let grad=ctx.createRadialGradient(lcx,topY+earH*0.35,0,lcx,topY+earH*0.35,earH);grad.addColorStop(0,belly);grad.addColorStop(1,bodyColor);
-    ctx.fillStyle=grad;ctx.beginPath();ctx.ellipse(lcx,topY+(bottomY-topY)/2,earW/2,(bottomY-topY)/2,0,0,7);ctx.fill();
-    ctx.fillStyle=InnerEarColor;ctx.beginPath();ctx.ellipse(lcx,topY+earH*0.18+earH*0.39,innerEarW/2,earH*0.39,0,0,7);ctx.fill();
-    const rcx=headCx+headR*0.42;
-    let grad2=ctx.createRadialGradient(rcx,topY+earH*0.35,0,rcx,topY+earH*0.35,earH);grad2.addColorStop(0,belly);grad2.addColorStop(1,bodyColor);
-    ctx.fillStyle=grad2;ctx.beginPath();ctx.ellipse(rcx,topY+(bottomY-topY)/2,earW/2,(bottomY-topY)/2,0,0,7);ctx.fill();
-    ctx.fillStyle=InnerEarColor;ctx.beginPath();ctx.ellipse(rcx,topY+earH*0.18+earH*0.39,innerEarW/2,earH*0.39,0,0,7);ctx.fill();
-  } else if(species==='hamster'){
-    const earY=headCy-headR*0.82,earR=headR*0.26,innerR=earR*0.48;
-    const lx=headCx-headR*0.62,rx=headCx+headR*0.62;
-    let grad=ctx.createRadialGradient(lx,earY-earR*0.3,0,lx,earY,earR*1.1);grad.addColorStop(0,belly);grad.addColorStop(1,bodyColor);
-    ctx.fillStyle=grad;ctx.beginPath();ctx.arc(lx,earY,earR,0,7);ctx.fill();
-    let grad2=ctx.createRadialGradient(rx,earY-earR*0.3,0,rx,earY,earR*1.1);grad2.addColorStop(0,belly);grad2.addColorStop(1,bodyColor);
-    ctx.fillStyle=grad2;ctx.beginPath();ctx.arc(rx,earY,earR,0,7);ctx.fill();
-    ctx.fillStyle=InnerEarColor;ctx.beginPath();ctx.arc(lx,earY,innerR,0,7);ctx.fill();
-    ctx.beginPath();ctx.arc(rx,earY,innerR,0,7);ctx.fill();
+    // 第 3 层：上部高光（月牙形，淡色）
+    const hg = ctx.createRadialGradient(cx - rx * 0.3, cy - ry * 0.45, 0, cx - rx * 0.3, cy - ry * 0.45, rx * 0.6);
+    hg.addColorStop(0, rgba(lighter, 0.6));
+    hg.addColorStop(1, rgba(lighter, 0));
+    ctx.fillStyle = hg;
+    ctx.beginPath();
+    ctx.ellipse(cx - rx * 0.25, cy - ry * 0.4, rx * 0.55, ry * 0.45, 0, 0, Math.PI * 2);
+    ctx.fill();
   }
 
-  // Head
-  let hgrad=ctx.createRadialGradient(headCx,headCy-headR*0.15,0,headCx,headCy,headR*1.1);
-  hgrad.addColorStop(0,belly);hgrad.addColorStop(1,bodyColor);
-  ctx.fillStyle=hgrad;ctx.beginPath();ctx.arc(headCx,headCy,headR,0,7);ctx.fill();
-
-  // Front paws
-  function drawFrontPaw(cx,cy,ww,hh){
-    let g=ctx.createRadialGradient(cx,cy-hh*0.25,0,cx,cy,hh*0.7);
-    g.addColorStop(0,'rgba('+dark.replace('rgb(','').replace(')','')+',0.9)');g.addColorStop(1,dark);
-    ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(cx,cy,ww/2,hh/2,0,0,7);ctx.fill();
-  }
-  drawFrontPaw(leftPawX,pawY,pawW,pawH);
-  drawFrontPaw(rightPawX,pawY,pawW,pawH);
-
-  // Blush
-  drawWatercolorBlush(ctx,headCx-headR*0.65,blushY,blushR);
-  drawWatercolorBlush(ctx,headCx+headR*0.65,blushY,blushR);
-
-  // Eyes
-  ctx.fillStyle=EyeColor;
-  ctx.beginPath();ctx.arc(leftEyeX,eyeY,pupilR,0,7);ctx.fill();
-  ctx.beginPath();ctx.arc(rightEyeX,eyeY,pupilR,0,7);ctx.fill();
-  let hlR=w*0.024;
-  ctx.fillStyle='#fff';
-  ctx.beginPath();ctx.arc(leftEyeX+w*0.018,eyeY-h*0.020,hlR,0,7);ctx.fill();
-  ctx.beginPath();ctx.arc(rightEyeX+w*0.018,eyeY-h*0.020,hlR,0,7);ctx.fill();
-  ctx.fillStyle='rgba(255,255,255,0.45)';
-  ctx.beginPath();ctx.arc(leftEyeX-w*0.015,eyeY+h*0.015,hlR*0.4,0,7);ctx.fill();
-  ctx.beginPath();ctx.arc(rightEyeX-w*0.015,eyeY+h*0.015,hlR*0.4,0,7);ctx.fill();
-
-  // Snout
-  if(species==='cat'){
-    ctx.fillStyle=SnoutColor;
-    ctx.beginPath();ctx.moveTo(headCx,noseY-noseR);ctx.lineTo(headCx-noseR*1.1,noseY+noseR);ctx.lineTo(headCx+noseR*1.1,noseY+noseR);ctx.closePath();ctx.fill();
-    ctx.strokeStyle=WhiskerColor;ctx.lineWidth=2;
-    ctx.beginPath();ctx.moveTo(headCx-headR*0.5,noseY+noseR);ctx.lineTo(headCx-headR*1.0,noseY+noseR*0.5);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(headCx-headR*0.5,noseY+noseR*2);ctx.lineTo(headCx-headR*1.0,noseY+noseR*1.5);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(headCx+headR*0.5,noseY+noseR);ctx.lineTo(headCx+headR*1.0,noseY+noseR*0.5);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(headCx+headR*0.5,noseY+noseR*2);ctx.lineTo(headCx+headR*1.0,noseY+noseR*1.5);ctx.stroke();
-    ctx.strokeStyle='#fff';ctx.lineWidth=2.5;ctx.lineCap='round';
-    ctx.beginPath();ctx.moveTo(headCx-noseR*1.2,mouthY);ctx.lineTo(headCx+noseR*1.2,mouthY);ctx.stroke();
-  } else if(species==='dog'){
-    const snoutR=w*0.075;
-    ctx.fillStyle='rgba(255,143,171,0.55)';ctx.beginPath();ctx.arc(headCx,noseY+noseR*0.5,snoutR,0,7);ctx.fill();
-    ctx.fillStyle=EyeColor;ctx.beginPath();ctx.arc(headCx,noseY,noseR*1.2,0,7);ctx.fill();
-    ctx.strokeStyle='#fff';ctx.lineWidth=2.5;ctx.lineCap='round';
-    ctx.beginPath();ctx.moveTo(headCx-noseR*1.8,mouthY+noseR);ctx.lineTo(headCx+noseR*1.8,mouthY+noseR);ctx.stroke();
-  } else if(species==='rabbit'){
-    ctx.fillStyle=SnoutColor;ctx.beginPath();ctx.arc(headCx,noseY,noseR*0.9,0,7);ctx.fill();
-    ctx.strokeStyle=WhiskerColor;ctx.lineWidth=2;
-    ctx.beginPath();ctx.moveTo(headCx,noseY+noseR*0.9);ctx.lineTo(headCx,mouthY);ctx.stroke();
-    ctx.strokeStyle='#fff';ctx.lineWidth=2.5;ctx.lineCap='round';
-    ctx.beginPath();ctx.moveTo(headCx-noseR*1.2,mouthY);ctx.lineTo(headCx+noseR*1.2,mouthY);ctx.stroke();
-  } else if(species==='hamster'){
-    ctx.fillStyle=SnoutColor;ctx.beginPath();ctx.arc(headCx,noseY,noseR,0,7);ctx.fill();
-    ctx.strokeStyle='#fff';ctx.lineWidth=2.5;ctx.lineCap='round';
-    ctx.beginPath();ctx.moveTo(headCx-noseR,mouthY);ctx.lineTo(headCx+noseR,mouthY);ctx.stroke();
+  // 柔和描边
+  function softStroke(pathFn, color, width, alpha){
+    ctx.save();
+    ctx.strokeStyle = rgba(color, alpha);
+    ctx.lineWidth = width;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    pathFn();
+    ctx.restore();
   }
 
-  ctx.fillStyle='#888';ctx.font='14px sans-serif';ctx.textAlign='center';
-  ctx.fillText(species, w/2, h-8);
+  // 椭圆眼（设计图特征：深棕圆眼 + 左上淡粉高光 + 右下小白点）
+  function drawEye(ex, ey, er){
+    // 主体深色
+    const g = ctx.createRadialGradient(ex - er * 0.25, ey - er * 0.25, 0, ex, ey, er * 0.95);
+    g.addColorStop(0, '#7a5545');
+    g.addColorStop(1, 'rgba(35,25,20,1)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(ex, ey, eyeW, eyeH, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 主高光（左上，淡粉/奶白色，斜椭圆）
+    ctx.fillStyle = 'rgba(255,238,230,0.88)';
+    ctx.beginPath();
+    ctx.ellipse(ex - eyeW * 0.40, ey - eyeH * 0.45, eyeW * 0.40, eyeH * 0.28, -0.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 次高光（右下，小圆）
+    ctx.fillStyle = 'rgba(255,240,232,0.55)';
+    ctx.beginPath();
+    ctx.arc(ex + eyeW * 0.35, ey + eyeH * 0.22, eyeW * 0.13, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 水彩腮红（极淡）
+  function drawBlush(bx, by, br){
+    const g = ctx.createRadialGradient(bx, by, 0, bx, by, br * 2.0);
+    g.addColorStop(0, rgba(blush, 0.40));
+    g.addColorStop(0.6, rgba(blush, 0.18));
+    g.addColorStop(1, rgba(blush, 0));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(bx, by, br * 1.4, br * 0.85, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 水彩爪（圆，带粉垫）
+  function drawPaw(px, py, pr){
+    const g = ctx.createRadialGradient(px, py - pr * 0.3, 0, px, py, pr * 1.2);
+    g.addColorStop(0, rgba(light, 1));
+    g.addColorStop(1, rgba(mid, 1));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(px, py, pr, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = rgba(pink, 0.72);
+    ctx.beginPath();
+    ctx.ellipse(px, py + pr * 0.12, pr * 0.55, pr * 0.38, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 水彩脚
+  function drawFoot(px, py, pr){
+    const g = ctx.createRadialGradient(px, py - pr * 0.3, 0, px, py, pr * 1.3);
+    g.addColorStop(0, rgba(light, 1));
+    g.addColorStop(1, rgba(mid, 1));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(px, py, pr, pr * 0.85, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = rgba(pink, 0.65);
+    ctx.beginPath();
+    ctx.ellipse(px, py - pr * 0.1, pr * 0.45, pr * 0.28, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 地面投影
+  function drawGroundShadow(){
+    const g = ctx.createRadialGradient(bodyCx, bodyBottom + 2, 0, bodyCx, bodyBottom + 2, bodyRx * 1.5);
+    g.addColorStop(0, rgba(dark, 0.22));
+    g.addColorStop(1, rgba(dark, 0));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(bodyCx, bodyBottom + 5, bodyRx * 1.25, bodyRy * 0.30, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // ================================================================
+  // 物种特定绘制
+  // ================================================================
+
+  function drawEarsBeforeHead(){
+    if (species === 'cat'){
+      // 三角尖耳，位置贴近头顶
+      const earBaseY = headCy - headR * 0.85;
+      const earTipY  = headCy - headR * 1.55;
+      const earInnerTipY = headCy - headR * 1.20;
+      const earW = headR * 0.55;
+      const positions = [
+        { x: headCx - headR * 0.72, side: -1 },
+        { x: headCx + headR * 0.72, side: 1 }
+      ];
+      for(const p of positions){
+        const cx = p.x;
+        // 外耳
+        ctx.fillStyle = rgba(base, 1);
+        ctx.beginPath();
+        ctx.moveTo(cx - earW * 0.5, earBaseY);
+        ctx.quadraticCurveTo(cx - earW * 0.18, earTipY + headR * 0.05, cx, earTipY);
+        ctx.quadraticCurveTo(cx + earW * 0.18, earTipY + headR * 0.05, cx + earW * 0.5, earBaseY);
+        ctx.closePath();
+        ctx.fill();
+        // 内耳粉
+        ctx.fillStyle = rgba(pink, 0.75);
+        ctx.beginPath();
+        ctx.moveTo(cx - earW * 0.28, earBaseY - headR * 0.03);
+        ctx.quadraticCurveTo(cx - earW * 0.08, earInnerTipY, cx + earW * 0.08, earInnerTipY);
+        ctx.quadraticCurveTo(cx + earW * 0.28, earBaseY - headR * 0.03, cx + earW * 0.28, earBaseY - headR * 0.03);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+    else if (species === 'dog'){
+      // floppy 下垂耳：紧贴头侧，耳底约到头部中下方
+      const earTopY    = headCy - headR * 0.55;
+      const earBottomY = headCy + headR * 0.55;
+      const earW = headR * 0.40;
+
+      for(const side of [-1, 1]){
+        const outerX = headCx + side * headR * 0.92;
+        const innerX = headCx + side * headR * 0.32;
+        // 外耳
+        ctx.fillStyle = rgba(base, 1);
+        ctx.beginPath();
+        ctx.moveTo(innerX, earTopY);
+        ctx.bezierCurveTo(outerX - earW * 0.2, earTopY - headR * 0.02,
+                          outerX + side * earW * 0.5, earTopY + headR * 0.25,
+                          outerX + side * earW * 0.38, earBottomY);
+        ctx.bezierCurveTo(outerX + side * earW * 0.28, earBottomY + headR * 0.08,
+                          outerX - side * earW * 0.05, earTopY + headR * 0.18,
+                          innerX + side * 2, earTopY + headR * 0.02);
+        ctx.closePath();
+        ctx.fill();
+        // 内耳粉
+        ctx.fillStyle = rgba(pink, 0.60);
+        ctx.beginPath();
+        ctx.moveTo(innerX + side * 3, earTopY + headR * 0.02);
+        ctx.bezierCurveTo(outerX - side * earW * 0.12, earTopY + headR * 0.05,
+                          outerX + side * earW * 0.30, earTopY + headR * 0.30,
+                          outerX + side * earW * 0.25, earBottomY - headR * 0.03);
+        ctx.bezierCurveTo(outerX + side * earW * 0.15, earBottomY + headR * 0.04,
+                          outerX - side * earW * 0.03, earTopY + headR * 0.18,
+                          innerX + side * 4, earTopY + headR * 0.06);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+    else if (species === 'hamster'){
+      // 小圆耳，贴在头顶
+      const earR = headR * 0.20;
+      const earY = headCy - headR * 0.88;
+      for(const side of [-1, 1]){
+        const ex = headCx + side * headR * 0.52;
+        ctx.fillStyle = rgba(base, 1);
+        ctx.beginPath();
+        ctx.arc(ex, earY, earR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = rgba(pink, 0.72);
+        ctx.beginPath();
+        ctx.arc(ex, earY, earR * 0.52, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  function drawEarsAfterHead(){
+    if (species === 'rabbit'){
+      // 长竖耳
+      const earH = headR * 1.80;
+      const earW = headR * 0.30;
+      const topY = headCy - headR * 1.75;
+      const bottomY = headCy - headR * 0.22;
+      const midY = (topY + bottomY) / 2;
+
+      for(const side of [-1, 1]){
+        const ex = headCx + side * headR * 0.28;
+        // 外耳
+        ctx.fillStyle = rgba(base, 1);
+        ctx.beginPath();
+        ctx.ellipse(ex, midY, earW / 2, earH / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // 内耳粉
+        ctx.fillStyle = rgba(pink, 0.75);
+        ctx.beginPath();
+        ctx.ellipse(ex, midY + earH * 0.08, earW / 2 * 0.45, earH / 2 * 0.55, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  function drawFace(){
+    if (species === 'cat'){
+      // 三角鼻（倒三角）
+      ctx.fillStyle = '#ff8da1';
+      ctx.beginPath();
+      ctx.moveTo(headCx, noseY - noseR);
+      ctx.lineTo(headCx - noseR * 1.15, noseY + noseR * 0.85);
+      ctx.lineTo(headCx + noseR * 1.15, noseY + noseR * 0.85);
+      ctx.closePath();
+      ctx.fill();
+      // 嘴
+      softStroke(() => {
+        ctx.beginPath();
+        ctx.moveTo(headCx - noseR * 1.15, mouthY);
+        ctx.quadraticCurveTo(headCx, mouthY + noseR * 0.55, headCx + noseR * 1.15, mouthY);
+        ctx.stroke();
+      }, outline, 1.6, 0.60);
+      // 胡须（两侧）
+      ctx.strokeStyle = 'rgba(90,75,65,0.32)';
+      ctx.lineWidth = 1.1;
+      for(const s of [-1, 1]){
+        ctx.beginPath();
+        ctx.moveTo(headCx - s * headR * 0.28, noseY + noseR);
+        ctx.lineTo(headCx - s * headR * 0.82, noseY + noseR * 0.25);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(headCx - s * headR * 0.28, noseY + noseR * 1.6);
+        ctx.lineTo(headCx - s * headR * 0.82, noseY + noseR * 1.05);
+        ctx.stroke();
+      }
+    }
+    else if (species === 'dog'){
+      // 小圆鼻
+      ctx.fillStyle = '#2d2420';
+      ctx.beginPath();
+      ctx.arc(headCx, noseY, noseR * 1.15, 0, Math.PI * 2);
+      ctx.fill();
+      // 鼻下方肉垫
+      ctx.fillStyle = 'rgba(255,180,195,0.55)';
+      ctx.beginPath();
+      ctx.ellipse(headCx, noseY + noseR * 1.5, noseR * 1.35, noseR * 0.55, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // 嘴
+      softStroke(() => {
+        ctx.beginPath();
+        ctx.moveTo(headCx - noseR * 1.55, mouthY + noseR * 0.25);
+        ctx.quadraticCurveTo(headCx, mouthY + noseR * 1.0, headCx + noseR * 1.55, mouthY + noseR * 0.25);
+        ctx.stroke();
+      }, outline, 1.6, 0.60);
+    }
+    else if (species === 'rabbit'){
+      // 椭圆鼻
+      ctx.fillStyle = '#ff8da1';
+      ctx.beginPath();
+      ctx.ellipse(headCx, noseY, noseR * 0.95, noseR * 0.70, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // 嘴
+      softStroke(() => {
+        ctx.beginPath();
+        ctx.moveTo(headCx, noseY + noseR * 0.75);
+        ctx.lineTo(headCx, mouthY);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(headCx - noseR * 1.15, mouthY);
+        ctx.quadraticCurveTo(headCx, mouthY + noseR * 0.5, headCx + noseR * 1.15, mouthY);
+        ctx.stroke();
+      }, outline, 1.6, 0.55);
+    }
+    else if (species === 'hamster'){
+      // 圆鼻
+      ctx.fillStyle = '#ff8da1';
+      ctx.beginPath();
+      ctx.arc(headCx, noseY, noseR * 0.95, 0, Math.PI * 2);
+      ctx.fill();
+      // 嘴
+      softStroke(() => {
+        ctx.beginPath();
+        ctx.moveTo(headCx - noseR * 1.0, mouthY);
+        ctx.quadraticCurveTo(headCx, mouthY + noseR * 0.4, headCx + noseR * 1.0, mouthY);
+        ctx.stroke();
+      }, outline, 1.5, 0.55);
+      // 小胡须
+      ctx.strokeStyle = 'rgba(90,75,65,0.28)';
+      ctx.lineWidth = 1.0;
+      for(const s of [-1, 1]){
+        ctx.beginPath();
+        ctx.moveTo(headCx - s * headR * 0.28, noseY + noseR * 1.15);
+        ctx.lineTo(headCx - s * headR * 0.80, noseY + noseR * 0.85);
+        ctx.stroke();
+      }
+    }
+  }
+
+  // ================================================================
+  // 绘制顺序（严格按水彩分层）
+  // ================================================================
+
+  drawGroundShadow();
+
+  // 1. 身体水彩
+  paintWatercolorBlob(bodyCx, bodyCy, bodyRx, bodyRy, base, lighter, dark);
+
+  // 耳朵（头之前的）
+  drawEarsBeforeHead();
+
+  // 3. 身体勾边（更柔和）
+  softStroke(() => {
+    ctx.beginPath();
+    ctx.ellipse(bodyCx, bodyCy, bodyRx * 0.985, bodyRy * 0.985, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }, outline, 1.0, 0.35);
+
+  // 4. 头水彩
+  paintWatercolorBlob(headCx, headCy, headR, headR, base, lighter, dark);
+
+  // 5. 头勾边（更柔和）
+  softStroke(() => {
+    ctx.beginPath();
+    ctx.arc(headCx, headCy, headR * 0.985, 0, Math.PI * 2);
+    ctx.stroke();
+  }, outline, 0.9, 0.35);
+
+  // 6. 兔耳（头之后）
+  drawEarsAfterHead();
+
+  // 7. 后腿
+  drawFoot(footLx, footY, footR);
+  drawFoot(footRx, footY, footR);
+
+  // 8. 前爪
+  drawPaw(pawLx, pawY, pawR);
+  drawPaw(pawRx, pawY, pawR);
+
+  // 9. 腮红
+  drawBlush(headCx - headR * 0.58, blushY, blushR);
+  drawBlush(headCx + headR * 0.58, blushY, blushR);
+
+  // 10. 眼睛
+  drawEye(eyeLx, eyeY, headR);
+  drawEye(eyeRx, eyeY, headR);
+
+  // 11. 鼻嘴
+  drawFace();
+
+  // 标签
+  ctx.fillStyle = '#b79a82';
+  ctx.font = '13px "PingFang SC", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(species, W/2, H - 10);
 
   document.body.appendChild(canvas);
 }
 
-function roundRect(ctx,x,y,w,h,r){
-  ctx.beginPath();
-  ctx.moveTo(x+r,y);
-  ctx.lineTo(x+w-r,y);
-  ctx.quadraticCurveTo(x+w,y,x+w,y+r);
-  ctx.lineTo(x+w,y+h-r);
-  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
-  ctx.lineTo(x+r,y+h);
-  ctx.quadraticCurveTo(x,y+h,x,y+h-r);
-  ctx.lineTo(x,y+r);
-  ctx.quadraticCurveTo(x,y,x+r,y);
-  ctx.closePath();
-}
+// === 渲染 ===
+drawWatercolorPet('cat',    '#FFC4D0');
+drawWatercolorPet('dog',    '#F4C5A8');
+drawWatercolorPet('rabbit', '#E8D0F0');
+drawWatercolorPet('hamster','#F5D9A0');
 
-drawPet('cat','#FFB3C1');
-drawPet('dog','#F4C8A8');
-drawPet('rabbit','#E8D5F0');
-drawPet('hamster','#F5D9A0');
+const labelRow = document.createElement('div');
+labelRow.style.cssText = 'width:100%;display:flex;justify-content:center';
+labelRow.innerHTML = '<div style="color:#b79a82;font-size:12px;margin-top:20px">v10 · 手绘水彩风 · 对齐设计图</div>';
+document.body.appendChild(labelRow);
 </script>
 </body>
 </html>
