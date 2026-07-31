@@ -133,18 +133,19 @@ object OutfitRenderer {
         angle: Float
     ) {
         val path = Path().apply {
-            val rad = angle
-            val cos = Math.cos(rad).toFloat()
-            val sin = Math.sin(rad).toFloat()
-            moveTo(cx + 0f * cos - (-r) * sin, cy + 0f * sin + (-r) * cos)
-            quadraticTo(
-                cx + r * 0.6f * cos - 0f * sin, cy + r * 0.6f * sin + 0f * cos,
-                cx + 0f * cos - r * sin, cy + 0f * sin + r * cos
-            )
-            quadraticTo(
-                cx + (-r * 0.6f) * cos - 0f * sin, cy + (-r * 0.6f) * sin + 0f * cos,
-                cx + 0f * cos - (-r) * sin, cy + 0f * sin + (-r) * cos
-            )
+            val cos = Math.cos(angle.toDouble()).toFloat()
+            val sin = Math.sin(angle.toDouble()).toFloat()
+            val topX = cx - (-r) * sin
+            val topY = cy - r * cos
+            val botX = cx - r * sin
+            val botY = cy + r * cos
+            val ctrl1X = cx + r * 0.6f * cos
+            val ctrl1Y = cy + r * 0.6f * sin
+            val ctrl2X = cx + (-r * 0.6f) * cos
+            val ctrl2Y = cy + (-r * 0.6f) * sin
+            moveTo(topX, topY)
+            cubicTo(ctrl1X, ctrl1Y, ctrl1X, ctrl1Y, botX, botY)
+            cubicTo(ctrl2X, ctrl2Y, ctrl2X, ctrl2Y, topX, topY)
             close()
         }
         val g = Brush.linearGradient(
