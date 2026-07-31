@@ -277,8 +277,8 @@ private fun DrawScope.drawCat(w: Float, h: Float, body: Color, dark: Color) {
         size = Size(w * 0.64f, h * 0.78f),
         cornerRadius = CornerRadius(w * 0.32f, w * 0.32f)
     )
-    // Paws
-    drawPaws(w * 0.5f, h * 0.12f, h * 0.78f, body)
+    // Paws (darker color for visibility against body)
+    drawPaws(w, h, w * 0.18f, w * 0.82f, h * 0.12f, h * 0.90f, darkerColor)
 }
 
 private fun DrawScope.drawCatSnout(w: Float, h: Float) {
@@ -348,8 +348,8 @@ private fun DrawScope.drawDog(w: Float, h: Float, body: Color, dark: Color) {
         size = Size(w * 0.60f, h * 0.76f),
         cornerRadius = CornerRadius(w * 0.30f, w * 0.30f)
     )
-    // Paws
-    drawPaws(w * 0.5f, h * 0.14f, h * 0.76f, body)
+    // Paws (darker color for visibility against body)
+    drawPaws(w, h, w * 0.20f, w * 0.80f, h * 0.14f, h * 0.90f, darkerColor)
 }
 
 private fun DrawScope.drawDogSnout(w: Float, h: Float) {
@@ -390,8 +390,8 @@ private fun DrawScope.drawRabbit(w: Float, h: Float, body: Color, dark: Color) {
         size = Size(w * 0.56f, h * 0.70f),
         cornerRadius = CornerRadius(w * 0.28f, w * 0.28f)
     )
-    // Paws
-    drawPaws(w * 0.5f, h * 0.20f, h * 0.70f, body)
+    // Paws (darker color for visibility against body)
+    drawPaws(w, h, w * 0.22f, w * 0.78f, h * 0.20f, h * 0.90f, darkerColor)
 }
 
 private fun DrawScope.drawRabbitSnout(w: Float, h: Float) {
@@ -417,8 +417,8 @@ private fun DrawScope.drawHamster(w: Float, h: Float, body: Color, dark: Color) 
         topLeft = Offset(w * 0.32f, h * 0.52f),
         size = Size(w * 0.36f, h * 0.30f)
     )
-    // Paws (smaller for hamster)
-    drawPaws(w * 0.5f, h * 0.19f, h * 0.72f, body)
+    // Paws (darker color for visibility against body)
+    drawPaws(w, h, w * 0.30f, w * 0.70f, h * 0.19f, h * 0.86f, darkerColor)
 }
 
 private fun DrawScope.drawHamsterSnout(w: Float, h: Float) {
@@ -545,22 +545,22 @@ private fun DrawScope.drawWatercolorBlush(
     baseRadius: Float,
     baseColor: Color
 ) {
-    // Layer 1: Large, very transparent
+    // Layer 1: Large, slightly transparent
     drawCircle(
-        baseColor.copy(alpha = 0.15f),
-        radius = baseRadius * 1.3f,
+        baseColor.copy(alpha = 0.30f),
+        radius = baseRadius * 1.4f,
         center = Offset(centerX - baseRadius * 0.1f, centerY - baseRadius * 0.1f)
     )
     // Layer 2: Medium, semi-transparent
     drawCircle(
-        baseColor.copy(alpha = 0.25f),
+        baseColor.copy(alpha = 0.45f),
         radius = baseRadius,
         center = Offset(centerX + baseRadius * 0.15f, centerY + baseRadius * 0.05f)
     )
     // Layer 3: Small, more opaque
     drawCircle(
-        baseColor.copy(alpha = 0.35f),
-        radius = baseRadius * 0.6f,
+        baseColor.copy(alpha = 0.60f),
+        radius = baseRadius * 0.55f,
         center = Offset(centerX - baseRadius * 0.05f, centerY)
     )
 }
@@ -569,24 +569,28 @@ private fun DrawScope.drawWatercolorBlush(
  * Draw cute little paws/hands on the sides of the body.
  */
 private fun DrawScope.drawPaws(
-    bodyCenterX: Float,
+    w: Float,
+    h: Float,
+    bodyLeft: Float,
+    bodyRight: Float,
     bodyTop: Float,
-    bodyHeight: Float,
+    bodyBottom: Float,
     pawColor: Color
 ) {
-    val pawY = bodyTop + bodyHeight * 0.65f
-    val pawRadius = bodyHeight * 0.06f
-    
-    // Left paw
+    val pawWidth = w * 0.06f
+    val pawHeight = h * 0.08f
+    val pawY = bodyBottom - pawHeight * 0.6f
+
+    // Left paw at bottom-left corner
     drawOval(
         pawColor,
-        topLeft = Offset(bodyCenterX - bodyHeight * 0.35f, pawY),
-        size = Size(pawRadius * 2f, pawRadius * 2.5f)
+        topLeft = Offset(bodyLeft - pawWidth * 0.3f, pawY),
+        size = Size(pawWidth, pawHeight)
     )
-    // Right paw
+    // Right paw at bottom-right corner
     drawOval(
         pawColor,
-        topLeft = Offset(bodyCenterX + bodyHeight * 0.23f, pawY),
-        size = Size(pawRadius * 2f, pawRadius * 2.5f)
+        topLeft = Offset(bodyRight - pawWidth * 0.7f, pawY),
+        size = Size(pawWidth, pawHeight)
     )
 }
