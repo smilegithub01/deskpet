@@ -89,7 +89,16 @@ fun OnboardingScreen(onComplete: () -> Unit) {
             when (step) {
                 1 -> SpeciesStep(
                     selected = species,
-                    onSelect = { species = it }
+                    onSelect = { newSpecies ->
+                        species = newSpecies
+                        // 同步切换到该物种的默认颜色，确保图片资源存在
+                        color = when (newSpecies) {
+                            PetSpecies.CAT -> PetColor.PINK
+                            PetSpecies.DOG -> PetColor.PEACH
+                            PetSpecies.RABBIT -> PetColor.BLUE
+                            PetSpecies.HAMSTER -> PetColor.MINT
+                        }
+                    }
                 )
                 2 -> ColorStep(
                     selected = color,

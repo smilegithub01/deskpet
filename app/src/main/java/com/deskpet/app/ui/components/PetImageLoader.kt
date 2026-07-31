@@ -21,7 +21,17 @@ object PetImageLoader {
     private val cache = mutableMapOf<String, ImageBitmap>()
 
     /**
-     * 检查指定物种+颜色是否有图片资源可用
+     * 每个物种的默认颜色（有对应图片素材）
+     */
+    private val defaultColorFor = mapOf(
+        PetSpecies.CAT to PetColor.PINK,
+        PetSpecies.DOG to PetColor.PEACH,
+        PetSpecies.RABBIT to PetColor.BLUE,
+        PetSpecies.HAMSTER to PetColor.MINT
+    )
+
+    /**
+     * 检查指定物种+颜色是否有精确匹配的图片资源
      */
     fun hasAsset(context: Context, species: PetSpecies, color: PetColor): Boolean {
         val key = assetKey(species, color)
@@ -33,24 +43,42 @@ object PetImageLoader {
     }
 
     /**
-     * 加载并返回已抠除白色背景的宠物图片
-     * @return 透明背景的 ImageBitmap，无资源时返回 null（由调用方走矢量 fallback）
+     * 加载宠物图片，支持颜色变体：
+     * 1. 优先精确匹配 species_color.jpg
+     * 2. 无精确匹配时加载物种默认图（如 cat_pink.jpg），由调用方做 ColorFilter tint 着色
+     *
+     * @return Pair<bitmap, needsTint> — needsTint=true 表示图片是默认色，需要叠加 colorFilter
      */
-    fun loadPetBitmap(context: Context, species: PetSpecies, color: PetColor): ImageBitmap? {
-        val key = assetKey(species, color)
-        cache[key]?.let { return it }
+    fun loadPetBitmap(context: Context, species: PetSpecies, color: PetColor): Pair<ImageBitmap, Boolean>? {
+        val exactKey = assetKey(species, color)
 
-        val path = "pets/$key.jpg"
+        // 1. 尝试精确匹配
+        cache[exactKey]?.let { return it to false }
+        if (hasAsset(context, species, color)) {
+            return loadAndCache(context, exactKey, false)
+        }
+
+        // 2. 回退到物种默认颜色图
+        val defaultColor = defaultColorFor[species] ?: return null
+        val defaultKey = assetKey(species, defaultColor)
+        cache[defaultKey]?.let { return it to (color != defaultColor) }
+        if (hasAsset(context, species, defaultColor)) {
+            return loadAndCache(context, defaultKey, color != defaultColor)
+        }
+
+        return null
+    }
+
+    private fun loadAndCache(context: Context, key: String, needsTint: Boolean): Pair<ImageBitmap, Boolean>? {
         return try {
-            val bitmap = context.assets.open(path).use { stream ->
+            val bitmap = context.assets.open("pets/$key.jpg").use { stream ->
                 BitmapFactory.decodeStream(stream)
             } ?: return null
             val keyed = chromaKeyWhite(bitmap)
-            // 回收原始 bitmap 释放内存
             if (keyed !== bitmap) bitmap.recycle()
             val result = keyed.asImageBitmap()
             cache[key] = result
-            result
+            result to needsTint
         } catch (e: Exception) {
             null
         }

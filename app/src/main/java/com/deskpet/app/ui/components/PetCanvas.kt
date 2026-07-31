@@ -214,7 +214,7 @@ fun PetCanvas(
 
     // 行业方案：图片资源优先，代码做轻量动效；无图时走矢量 fallback
     val context = LocalContext.current
-    val petBitmap = remember(species, color) {
+    val petBitmapResult = remember(species, color) {
         PetImageLoader.loadPetBitmap(context, species, color)
     }
 
@@ -223,7 +223,15 @@ fun PetCanvas(
         contentAlignment = Alignment.Center
     ) {
         // 底层：宠物主体（图片优先 / 矢量 fallback）
-        if (petBitmap != null) {
+        if (petBitmapResult != null) {
+            val (petBitmap, needsTint) = petBitmapResult
+            val colorFilter = if (needsTint) {
+                androidx.compose.ui.graphics.ColorFilter.tint(
+                    color = baseColor.copy(alpha = 0.35f),
+                    blendMode = androidx.compose.ui.graphics.BlendMode.Multiply
+                )
+            } else null
+
             Image(
                 bitmap = petBitmap,
                 contentDescription = "桌宠",
@@ -232,7 +240,8 @@ fun PetCanvas(
                     scaleY = scale
                     translationY = if (state == PetState.HAPPY || state == PetState.EXCITED) -6f else 0f
                 },
-                contentScale = ContentScale.Fit
+                contentScale = ContentScale.Fit,
+                colorFilter = colorFilter
             )
         } else {
             Canvas(

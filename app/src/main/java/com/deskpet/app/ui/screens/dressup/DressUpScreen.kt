@@ -3,7 +3,9 @@ package com.deskpet.app.ui.screens.dressup
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +23,10 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.ripple.rememberRipple
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material3.Icon
@@ -288,18 +294,47 @@ private fun OutfitCard(
     onTap: () -> Unit
 ) {
     val locked = petLevel < item.requiredLevel && !owned
+    // 点击缩放动画反馈
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isPressed) 0.92f else 1f,
+        label = "cardScale"
+    )
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surface)
+            .background(
+                if (equipped) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                else MaterialTheme.colorScheme.surface
+            )
             .border(
                 width = if (equipped) 2.dp else 1.dp,
                 color = if (equipped) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.outlineVariant,
                 shape = RoundedCornerShape(16.dp)
             )
-            .clickable(onClick = onTap)
+            .clickable(
+                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                indication = androidx.compose.material.ripple.rememberRipple()
+            ) {
+                isPressed = true
+                onTap()
+            }
+            .pointerInput(Unit) {
+                androidx.compose.foundation.gestures.detectTapGestures(
+                    onPress = {
+                        isPressed = true
+                        tryAwaitRelease()
+                        isPressed = false
+                    }
+                )
+            }
             .padding(12.dp)
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
