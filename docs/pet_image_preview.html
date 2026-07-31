@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>桌宠效果预览 — 图片+动效方案</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:linear-gradient(180deg,#e8e4dc 0%,#d4cfc4 100%);
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;
+    padding:30px 20px;font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+  }
+  h1{color:#5a4a3a;font-size:18px;margin-bottom:4px;font-weight:600}
+  .desc{color:#8a7a6a;font-size:13px;margin-bottom:24px;line-height:1.6;text-align:center}
+
+  .stage{
+    display:flex;gap:40px;flex-wrap:wrap;justify-content:center;margin-bottom:30px;
+  }
+
+  .card{
+    background:rgba(255,255,255,0.6);
+    border-radius:14px;padding:20px;
+    box-shadow:0 4px 20px rgba(120,100,80,0.12);
+    display:flex;flex-direction:column;align-items:center;
+  }
+  .card-title{color:#6a5a4a;font-size:13px;margin-bottom:12px;letter-spacing:1px}
+
+  .preview-box{
+    width:240px;height:240px;
+    border-radius:12px;
+    position:relative;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;
+  }
+
+  /* 模拟 App 中的桌面背景 */
+  .bg-desktop{background:linear-gradient(135deg,#f0ebe3,#e0dbd0)}
+
+  /* 原始图片：白色背景 */
+  .raw-img{
+    width:200px;height:200px;object-fit:contain;
+  }
+
+  /* chroma key 模拟：用 mix-blend-mode 抠除白色 */
+  .keyed-img{
+    width:200px;height:200px;object-fit:contain;
+    mix-blend-mode:multiply;
+  }
+
+  /* 呼吸动画容器 */
+  .breath-wrap{
+    width:200px;height:200px;
+    display:flex;align-items:center;justify-content:center;
+    animation:breathe 2s ease-in-out infinite alternate;
+  }
+  .breath-wrap img{
+    width:100%;height:100%;object-fit:contain;
+    mix-blend-mode:multiply;
+  }
+  @keyframes breathe{
+    0%{transform:scale(0.97)}
+    100%{transform:scale(1.03)}
+  }
+
+  /* 开心弹跳 */
+  .happy-wrap{
+    width:200px;height:200px;
+    display:flex;align-items:center;justify-content:center;
+    animation:happyBounce 0.6s ease-in-out infinite alternate;
+  }
+  .happy-wrap img{
+    width:100%;height:100%;object-fit:contain;
+    mix-blend-mode:multiply;
+  }
+  @keyframes happyBounce{
+    0%{transform:scale(0.97) translateY(0)}
+    100%{transform:scale(1.05) translateY(-8px)}
+  }
+
+  .label{
+    margin-top:10px;font-size:12px;color:#8a7a6a;text-align:center;
+  }
+
+  .legend{
+    max-width:500px;background:rgba(255,255,255,0.5);
+    border-radius:10px;padding:16px 20px;margin-top:10px;
+    color:#6a5a4a;font-size:12px;line-height:1.8;
+  }
+  .legend b{color:#4a3a2a}
+</style>
+</head>
+<body>
+  <h1>桌宠效果预览 — 图片资源 + 代码动效方案</h1>
+  <div class="desc">
+    左：AI生成的原始图片（白底JPG）｜ 中：chroma key 抠白后 + 呼吸动画 ｜ 右：开心状态弹跳动效
+  </div>
+
+  <div class="stage">
+    <!-- 原始图片 -->
+    <div class="card">
+      <div class="card-title">原始素材（白底 JPG）</div>
+      <div class="preview-box bg-desktop">
+        <img class="raw-img" src="../app/src/main/assets/pets/cat_pink.jpg" alt="原始猫咪">
+      </div>
+      <div class="label">AI生成的水彩风格猫咪<br>白色背景未处理</div>
+    </div>
+
+    <!-- chroma key + 呼吸 -->
+    <div class="card">
+      <div class="card-title">透明背景 + 呼吸动画（IDLE）</div>
+      <div class="preview-box bg-desktop">
+        <div class="breath-wrap">
+          <img src="../app/src/main/assets/pets/cat_pink.jpg" alt="呼吸猫咪">
+        </div>
+      </div>
+      <div class="label">白色背景已抠除<br>scale 0.97↔1.03 呼吸中</div>
+    </div>
+
+    <!-- 开心弹跳 -->
+    <div class="card">
+      <div class="card-title">开心状态（HAPPY）</div>
+      <div class="preview-box bg-desktop">
+        <div class="happy-wrap">
+          <img src="../app/src/main/assets/pets/cat_pink.jpg" alt="开心猫咪">
+        </div>
+      </div>
+      <div class="label">scale 1.05 + 上移 8px<br>模拟点击后的开心反馈</div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <b>实现说明：</b><br>
+    • 主体：AI生成的水彩风格猫咪图片，100%还原设计图水彩质感<br>
+    • 抠图：PetImageLoader.chromaKeyWhite() 像素级抠除白色背景（亮度&gt;250全透明，225-250平滑过渡）<br>
+    • 动效：Compose graphicsLayer 控制 scale 呼吸 + translationY 弹跳，性能开销极小<br>
+    • 换装：后续可叠加 PNG 透明装饰素材，与主体风格统一<br>
+    <br>
+    <b>注意：</b>浏览器用 mix-blend-mode:multiply 近似模拟 chroma key 效果，<br>
+    实际 App 中的抠除效果会更干净（像素级精度，无残留白边）。
+  </div>
+
+  <script>
+    // 眨眼模拟（App中每3-4秒眨一次眼）
+    // 这里仅展示呼吸和弹跳，眨眼需要图片分层实现
+    console.log('Pet preview loaded');
+  </script>
+</body>
+</html>
